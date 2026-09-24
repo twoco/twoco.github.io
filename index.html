@@ -3,79 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entraide HEC - Trouver un tuteur</title>
+    <title>TWOCO - HEC Cours d'appui</title>
     <style>
         /* DESIGN DU SITE (CSS) */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
-        
-        /* Barre du haut (Bleu HEC) */
-        .navbar { background-color: #003366; color: white; padding: 20px; text-align: center; }
-        
-        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-        
-        h2 { color: #333; text-align: center; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            padding: 0; 
+        }
+
+        /* Barre du haut avec le logo et les couleurs TWOCO */
+        .navbar { 
+            background-color: #0d172e; 
+            padding: 24px 20px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 2px solid #1a2a4f;
+        }
+
+        .navbar-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Logo TWOCO en SVG vectoriel */
+        .logo-symbol {
+            width: 75px;
+            height: 75px;
+            flex-shrink: 0;
+        }
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        .brand-title .white { color: #ffffff; }
+        .brand-title .cyan { color: #38bdf8; }
+
+        .brand-subtitle {
+            margin-top: 6px;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .container { 
+            max-width: 900px; 
+            margin: 30px auto; 
+            padding: 0 20px; 
+        }
+
+        h2 { 
+            color: #0d172e; 
+            text-align: center; 
+            margin-bottom: 25px;
+        }
 
         /* Style des fiches tuteurs */
         .tuteur-card { 
-            background: white; border-radius: 15px; padding: 25px; margin-bottom: 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 8px solid #003366;
+            background: white; 
+            border-radius: 15px; 
+            padding: 25px; 
+            margin-bottom: 20px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06); 
+            border-left: 8px solid #2563eb;
         }
 
-        .tuteur-info h3 { margin: 0 0 10px 0; color: #003366; }
-        .tuteur-info p { margin: 5px 0; color: #555; }
-        .tag-matiere { background: #eef2ff; color: #003366; padding: 4px 10px; border-radius: 5px; font-weight: bold; font-size: 0.9rem; }
+        .tuteur-info h3 { 
+            margin: 0 0 10px 0; 
+            color: #0d172e; 
+            font-size: 1.3rem;
+        }
 
-        .prix { font-size: 1.4rem; font-weight: bold; color: #28a745; }
+        .tuteur-info p { 
+            margin: 6px 0; 
+            color: #555; 
+        }
 
-        /* Le bouton WhatsApp */
+        .tag-matiere { 
+            background: #eff6ff; 
+            color: #1d4ed8; 
+            padding: 5px 12px; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 0.9rem; 
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .prix { 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            color: #0d172e; 
+            margin-bottom: 10px;
+        }
+
+        /* Bouton WhatsApp */
         .btn-whatsapp {
-            background-color: #25D366; color: white; text-decoration: none;
-            padding: 12px 20px; border-radius: 30px; font-weight: bold;
-            display: flex; align-items: center; gap: 10px; transition: 0.3s;
+            background-color: #25D366; 
+            color: white; 
+            text-decoration: none;
+            padding: 12px 22px; 
+            border-radius: 30px; 
+            font-weight: bold;
+            display: inline-flex; 
+            align-items: center; 
+            gap: 10px; 
+            transition: 0.2s ease;
         }
-        .btn-whatsapp:hover { background-color: #1ebd5a; transform: scale(1.05); }
 
+        .btn-whatsapp:hover { 
+            background-color: #1ebd5a; 
+            transform: scale(1.03); 
+        }
+
+        @media (max-width: 600px) {
+            .navbar-content { gap: 14px; }
+            .logo-symbol { width: 55px; height: 55px; }
+            .brand-title { font-size: 2rem; }
+            .brand-subtitle { font-size: 0.7rem; letter-spacing: 3px; }
+            .tuteur-card { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .tuteur-card > div:last-child { text-align: left !important; width: 100%; }
+            .btn-whatsapp { width: 100%; justify-content: center; box-sizing: border-box; }
+        }
     </style>
 </head>
 <body>
 
+    <!-- Barre de navigation avec le logo TWOCO -->
     <div class="navbar">
-        <h1>📚 Entraide HEC</h1>
-        <p>Connecte-toi avec les 2ème année pour réussir tes partiels</p>
+        <div class="navbar-content">
+            <!-- Emblème 2 + C en SVG vectoriel -->
+            <svg class="logo-symbol" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Chiffre 2 (Bleu roi) -->
+                <path d="M 28 32 C 28 14, 68 12, 68 32 C 68 44, 48 58, 30 76 L 76 76" 
+                      stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Lettre C imbriquée (Bleu clair cyan) -->
+                <path d="M 72 38 C 50 34, 30 46, 30 65 C 30 84, 52 92, 74 84" 
+                      stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+            </svg>
+
+            <!-- Typographie TWOCO -->
+            <div class="brand-text">
+                <div class="brand-title">
+                    <span class="white">TWO</span><span class="cyan">CO</span>
+                </div>
+                <div class="brand-subtitle">HEC COURS D'APPUI</div>
+            </div>
+        </div>
     </div>
 
     <div class="container">
         <h2>Tuteurs disponibles (2ème Année)</h2>
 
-        <!-- TUTEUR 1 -->
+        <!-- TUTEUR 1 : Nathan -->
         <div class="tuteur-card">
             <div class="tuteur-info">
-                <h3>Thomas B.</h3>
-                <span class="tag-matiere">Compta / Microéconomie</span>
+                <h3>Nathan Coquoz</h3>
+                <span class="tag-matiere">Microéconomie / Macroéconomie / Statistiques</span>
                 <p><strong>Disponibilités :</strong> Mardi soir et Samedi matin</p>
-                <p>📍 Campus ou Zoom</p>
+                <p>📍 Campus HEC ou Zoom</p>
             </div>
             <div style="text-align: right;">
-                <div class="prix">20€/h</div>
-                <!-- Remplace le numéro par le tien pour tester : 336... -->
-                <a href="https://wa.me/33600000000" class="btn-whatsapp">
+                <div class="prix">30 CHF/h</div>
+                <!-- Remplace par ton vrai numéro (ex: 41791234567) -->
+                <a href="https://wa.me/41790000000?text=Salut%20Nathan%20!%20Je%20viens%20de%20TWOCO,%20es-tu%20disponible%20pour%20un%20cours%20d'appui%20?" class="btn-whatsapp">
                     Contacter via WhatsApp
                 </a>
             </div>
         </div>
 
-        <!-- TUTEUR 2 -->
+        <!-- TUTEUR 2 : Quentin -->
         <div class="tuteur-card">
             <div class="tuteur-info">
-                <h3>Sarah M.</h3>
-                <span class="tag-matiere">Mathématiques / Statistiques</span>
-                <p><strong>Disponibilités :</strong> Lundi et Jeudi midi</p>
-                <p>📍 Bibliothèque HEC</p>
+                <h3>Quentin Courtine</h3>
+                <span class="tag-matiere">Mathématiques / Comptabilité financière</span>
+                <p><strong>Disponibilités :</strong> Lundi et Jeudi après-midi</p>
+                <p>📍 Bibliothèque HEC ou Zoom</p>
             </div>
             <div style="text-align: right;">
-                <div class="prix">25€/h</div>
-                <a href="https://wa.me/33600000000" class="btn-whatsapp">
+                <div class="prix">30 CHF/h</div>
+                <!-- Remplace par ton vrai numéro (ex: 41781234567) -->
+                <a href="https://wa.me/41780000000?text=Salut%20Quentin%20!%20Je%20viens%20de%20TWOCO,%20es-tu%20disponible%20pour%20un%20cours%20d'appui%20?" class="btn-whatsapp">
                     Contacter via WhatsApp
                 </a>
             </div>
