@@ -4,214 +4,218 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TWOCO - HEC Cours d'appui</title>
+    <!-- Importation d'une police moderne -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* DESIGN DU SITE (CSS) */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #f4f7f6; 
-            margin: 0; 
-            padding: 0; 
+        :root {
+            --dark: #0d172e;
+            --blue: #2563eb;
+            --cyan: #38bdf8;
+            --bg: #f8fafc;
+            --white: #ffffff;
         }
 
-        /* Barre du haut avec le logo et les couleurs TWOCO */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+        }
+
+        /* Navbar améliorée */
         .navbar { 
-            background-color: #0d172e; 
-            padding: 24px 20px; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-bottom: 2px solid #1a2a4f;
+            background-color: var(--dark); 
+            padding: 20px; 
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
         .navbar-content {
+            max-width: 1100px;
+            margin: 0 auto;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 20px;
         }
 
-        /* Logo TWOCO en SVG vectoriel */
-        .logo-symbol {
-            width: 75px;
-            height: 75px;
-            flex-shrink: 0;
-        }
-
-        .brand-text {
-            display: flex;
-            flex-direction: column;
-            text-align: left;
-        }
+        .logo-symbol { width: 60px; height: 60px; }
 
         .brand-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -1px;
             margin: 0;
-            font-size: 2.8rem;
-            font-weight: 900;
-            letter-spacing: 2px;
-            line-height: 1;
+        }
+        .brand-title .white { color: var(--white); }
+        .brand-title .cyan { color: var(--cyan); }
+
+        /* Hero Section (Nouveau) */
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%);
+            color: white;
+            margin-bottom: 40px;
         }
 
-        .brand-title .white { color: #ffffff; }
-        .brand-title .cyan { color: #38bdf8; }
-
-        .brand-subtitle {
-            margin-top: 6px;
-            color: #94a3b8;
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-        }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; }
+        .hero p { opacity: 0.8; font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
 
         .container { 
-            max-width: 900px; 
-            margin: 30px auto; 
+            max-width: 1100px; 
+            margin: 0 auto; 
             padding: 0 20px; 
         }
 
-        h2 { 
-            color: #0d172e; 
-            text-align: center; 
-            margin-bottom: 25px;
+        /* Grille des Tuteurs */
+        .tuteurs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
         }
 
-        /* Style des fiches tuteurs */
         .tuteur-card { 
-            background: white; 
-            border-radius: 15px; 
-            padding: 25px; 
-            margin-bottom: 20px;
+            background: var(--white); 
+            border-radius: 20px; 
+            padding: 30px; 
             display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06); 
-            border-left: 8px solid #2563eb;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tuteur-card:hover { 
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            border-color: var(--blue);
+        }
+
+        .tuteur-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 6px;
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
         }
 
         .tuteur-info h3 { 
-            margin: 0 0 10px 0; 
-            color: #0d172e; 
-            font-size: 1.3rem;
-        }
-
-        .tuteur-info p { 
-            margin: 6px 0; 
-            color: #555; 
+            margin: 0 0 15px 0; 
+            font-size: 1.4rem;
+            font-weight: 700;
         }
 
         .tag-matiere { 
-            background: #eff6ff; 
-            color: #1d4ed8; 
-            padding: 5px 12px; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            font-size: 0.9rem; 
+            background: #f1f5f9; 
+            color: var(--blue); 
+            padding: 6px 14px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
             display: inline-block;
-            margin-bottom: 6px;
+            margin-bottom: 15px;
         }
 
-        .prix { 
-            font-size: 1.4rem; 
-            font-weight: bold; 
-            color: #0d172e; 
-            margin-bottom: 10px;
+        .dispo { font-size: 0.9rem; color: #64748b; margin-bottom: 20px; }
+
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 20px;
         }
 
-        /* Bouton WhatsApp */
+        .prix { font-size: 1.5rem; font-weight: 800; color: var(--dark); }
+
         .btn-whatsapp {
             background-color: #25D366; 
             color: white; 
             text-decoration: none;
-            padding: 12px 22px; 
-            border-radius: 30px; 
-            font-weight: bold;
-            display: inline-flex; 
-            align-items: center; 
-            gap: 10px; 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            font-weight: 700;
             transition: 0.2s ease;
+            font-size: 0.9rem;
         }
 
-        .btn-whatsapp:hover { 
-            background-color: #1ebd5a; 
-            transform: scale(1.03); 
+        .btn-whatsapp:hover { background-color: #1ebd5a; }
+
+        footer {
+            margin-top: 80px;
+            padding: 40px;
+            text-align: center;
+            background-color: var(--dark);
+            color: #94a3b8;
         }
 
+        /* Mobile */
         @media (max-width: 600px) {
-            .navbar-content { gap: 14px; }
-            .logo-symbol { width: 55px; height: 55px; }
-            .brand-title { font-size: 2rem; }
-            .brand-subtitle { font-size: 0.7rem; letter-spacing: 3px; }
-            .tuteur-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .tuteur-card > div:last-child { text-align: left !important; width: 100%; }
-            .btn-whatsapp { width: 100%; justify-content: center; box-sizing: border-box; }
+            .hero h1 { font-size: 1.8rem; }
+            .brand-title { font-size: 1.8rem; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Barre de navigation avec le logo TWOCO -->
     <div class="navbar">
         <div class="navbar-content">
-            <!-- Emblème 2 + C en SVG vectoriel -->
             <svg class="logo-symbol" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Chiffre 2 (Bleu roi) -->
-                <path d="M 28 32 C 28 14, 68 12, 68 32 C 68 44, 48 58, 30 76 L 76 76" 
-                      stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-                <!-- Lettre C imbriquée (Bleu clair cyan) -->
-                <path d="M 72 38 C 50 34, 30 46, 30 65 C 30 84, 52 92, 74 84" 
-                      stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+                <path d="M 28 32 C 28 14, 68 12, 68 32 C 68 44, 48 58, 30 76 L 76 76" stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M 72 38 C 50 34, 30 46, 30 65 C 30 84, 52 92, 74 84" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
             </svg>
-
-            <!-- Typographie TWOCO -->
-            <div class="brand-text">
-                <div class="brand-title">
-                    <span class="white">TWO</span><span class="cyan">CO</span>
-                </div>
-                <div class="brand-subtitle">HEC COURS D'APPUI</div>
+            <div class="brand-title">
+                <span class="white">TWO</span><span class="cyan">CO</span>
             </div>
         </div>
+    </div>
+
+    <div class="hero">
+        <h1>Réussis ton année à HEC</h1>
+        <p>Mise en relation directe entre étudiants de 1ère et 2ème année pour des cours d'appui ciblés.</p>
     </div>
 
     <div class="container">
-        <h2>Tuteurs disponibles (2ème Année)</h2>
-
-        <!-- TUTEUR 1 : Nathan -->
-        <div class="tuteur-card">
-            <div class="tuteur-info">
-                <h3>Nathan Coquoz</h3>
-                <span class="tag-matiere"> Économie I / Mathématiques I / Statistiques I </span>
-                <p><strong>Disponibilités :</strong> Lundi soir / Mercredi après-midi </p>
-                <p>📍 Campus Amphimax ou Zoom</p>
+        <div class="tuteurs-grid">
+            <!-- TUTEUR 1 -->
+            <div class="tuteur-card">
+                <div class="tuteur-info">
+                    <span class="tag-matiere">Économie I • Maths I • Stats I</span>
+                    <h3>Nathan Coquoz</h3>
+                    <p class="dispo">📅 Dispo : Lundi soir / Mercredi après-midi<br>📍 Campus Amphimax ou Zoom</p>
+                </div>
+                <div class="card-footer">
+                    <div class="prix">30 CHF/h</div>
+                    <a href="https://wa.me/41774646513?text=Salut%20Nathan..." class="btn-whatsapp">WhatsApp</a>
+                </div>
             </div>
-            <div style="text-align: right;">
-                <div class="prix">30 CHF/h</div>
-                <!-- Remplace par ton vrai numéro (ex: 41791234567) -->
-                <a href="https://wa.me/41774646513?text=Salut%20Nathan%20!%20Je%20viens%20de%20TWOCO,%20es-tu%20disponible%20pour%20un%20cours%20d'appui%20?" class="btn-whatsapp">
-                    Contacter via WhatsApp
-                </a>
+
+            <!-- TUTEUR 2 -->
+            <div class="tuteur-card">
+                <div class="tuteur-info">
+                    <span class="tag-matiere">Maths I • Comptabilité</span>
+                    <h3>Quentin Courtine</h3>
+                    <p class="dispo">📅 Dispo : Lundi / Vendredi<br>📍 Campus Amphimax ou Zoom</p>
+                </div>
+                <div class="card-footer">
+                    <div class="prix">30 CHF/h</div>
+                    <a href="https://wa.me/41793394697?text=Salut%20Quentin..." class="btn-whatsapp">WhatsApp</a>
+                </div>
             </div>
         </div>
-
-        <!-- TUTEUR 2 : Quentin -->
-        <div class="tuteur-card">
-            <div class="tuteur-info">
-                <h3>Quentin Courtine</h3>
-                <span class="tag-matiere">Mathématiques I / Comptabilité financière </span>
-                <p><strong>Disponibilités :</strong> Lundi / Vendredi </p>
-                <p>📍 Campus Amphimax ou Zoom</p>
-            </div>
-            <div style="text-align: right;">
-                <div class="prix">30 CHF/h</div>
-                <!-- Remplace par ton vrai numéro (ex: 41781234567) -->
-                <a href="https://wa.me/41793394697?text=Salut%20Quentin%20!%20Je%20viens%20de%20TWOCO,%20es-tu%20disponible%20pour%20un%20cours%20d'appui%20?" class="btn-whatsapp">
-                    Contacter via WhatsApp
-                </a>
-            </div>
-        </div>
-    <footer style="margin-top: 50px; padding: 20px; text-align: center; border-top: 1px solid #ddd; font-size: 0.8rem; color: #777;">
-    <p> 2026 Twoco HEC - Tous droits réservés</p>
-    <p>Fondateur : <strong>Nathan Coquoz</strong> | Co-fondateur : <strong>Quentin Courtine</strong></p>
-    </footer>    
     </div>
+
+    <footer>
+        <p>&copy; 2026 Twoco HEC - Tous droits réservés</p>
+        <p>Fondateur : Nathan Coquoz | Co-fondateur : Quentin Courtine</p>
+    </footer>
 
 </body>
 </html>
