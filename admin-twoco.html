@@ -2,48 +2,113 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - TWOCO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADMIN - TWOCO</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; padding: 40px; background: #f0f2f5; }
-        .tuteur-row { background: white; padding: 20px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-v { background: green; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
-        .btn-d { background: red; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .tuteur-card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .info h3 { margin: 0; color: #0d172e; }
+        .info p { margin: 5px 0; color: #64748b; font-size: 0.9rem; }
+        .actions { display: flex; gap: 10px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-v { background: #22c55e; color: white; }
+        .btn-d { background: #ef4444; color: white; }
+        .btn:hover { opacity: 0.8; transform: scale(1.05); }
+        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0d172e; display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .auth-box { background: white; padding: 30px; border-radius: 15px; text-align: center; }
     </style>
 </head>
 <body>
-    <h1>Candidatures en attente</h1>
-    <div id="liste">Chargement...</div>
+
+    <!-- Petit verrou de sécurité par code -->
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <h2>Accès Fondateur</h2>
+            <input type="password" id="admin-code" placeholder="Entrez le code secret" style="padding: 10px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 15px; width: 100%;">
+            <button class="btn btn-v" onclick="checkCode()">Accéder</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Candidatures TWOCO</h1>
+            <button class="btn" onclick="location.reload()" style="background:#0d172e; color:white;">Actualiser</button>
+        </div>
+        
+        <div id="liste-attente">
+            <p>Chargement des dossiers...</p>
+        </div>
+    </div>
 
     <script>
-        const supabase = libsupabase.createClient('https://wjkhkxtdlrphouwsnicg.supabase.co', 'sb_publishable_xqg7T7q6ttLweAjloiT7uA_nEN7v0RB');
+        const _url = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+        const _key = 'sb_publishable_xqg7T7q6ttLweAjloiT7uA_nEN7v0RB'; // Utilise ta clé anon ici
+        const supabase = supabase.createClient(_url, _key);
 
-        async function load() {
-            const { data } = await supabase.from('tuteurs').select('*').eq('status', 'en_attente');
-            let html = '';
+        // LE CODE SECRET POUR TOI (Change-le si tu veux)
+        function checkCode() {
+            const code = document.getElementById('admin-code').value;
+            if(code === "HEC2024") { // <--- Ton code secret ici
+                document.getElementById('auth-overlay').style.display = 'none';
+                fetchEnAttente();
+            } else {
+                alert("Code incorrect !");
+            }
+        }
+
+        async function fetchEnAttente() {
+            const { data, error } = await supabase
+                .from('tuteurs')
+                .select('*')
+                .eq('status', 'en_attente');
+
+            const container = document.getElementById('liste-attente');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = '<p>Aucune nouvelle candidature pour le moment.</p>';
+                return;
+            }
+
             data.forEach(t => {
-                html += `<div class="tuteur-row">
-                    <div><strong>${t.prenom} ${t.nom}</strong> - ${t.matieres} (${t.prix})</div>
-                    <div>
-                        <button class="btn-v" onclick="valider('${t.id}')">Valider</button>
-                        <button class="btn-d" onclick="supprimer('${t.id}')">Supprimer</button>
+                container.innerHTML += `
+                    <div class="tuteur-card">
+                        <div class="info">
+                            <h3>${t.prenom} ${t.nom}</h3>
+                            <p><strong>Matières:</strong> ${t.matieres}</p>
+                            <p><strong>Prix:</strong> ${t.prix} | <strong>Lieu:</strong> ${t.lieu}</p>
+                            <p><strong>WhatsApp:</strong> ${t.whatsapp}</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-v" onclick="modifierStatut('${t.id}', 'valide')">✅ Valider</button>
+                            <button class="btn btn-d" onclick="supprimerTuteur('${t.id}')">❌ Refuser</button>
+                        </div>
                     </div>
-                </div>`;
+                `;
             });
-            document.getElementById('liste').innerHTML = html || 'Aucune candidature en attente.';
         }
 
-        async function valider(id) {
-            await supabase.from('tuteurs').update({ status: 'valide' }).eq('id', id);
-            load();
+        async function modifierStatut(id, nouveauStatut) {
+            const { error } = await supabase
+                .from('tuteurs')
+                .update({ status: nouveauStatut })
+                .eq('id', id);
+            
+            if(!error) fetchEnAttente();
         }
 
-        async function supprimer(id) {
-            await supabase.from('tuteurs').delete().eq('id', id);
-            load();
+        async function supprimerTuteur(id) {
+            if(confirm("Supprimer définitivement cette candidature ?")) {
+                const { error } = await supabase
+                    .from('tuteurs')
+                    .delete()
+                    .eq('id', id);
+                if(!error) fetchEnAttente();
+            }
         }
-
-        load();
     </script>
 </body>
 </html>
