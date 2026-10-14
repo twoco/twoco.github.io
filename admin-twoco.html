@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - TWOCO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 40px; background: #f0f2f5; }
+        .tuteur-row { background: white; padding: 20px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-v { background: green; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+        .btn-d { background: red; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Candidatures en attente</h1>
+    <div id="liste">Chargement...</div>
+
+    <script>
+        const supabase = libsupabase.createClient('https://wjkhkxtdlrphouwsnicg.supabase.co', 'sb_publishable_xqg7T7q6ttLweAjloiT7uA_nEN7v0RB');
+
+        async function load() {
+            const { data } = await supabase.from('tuteurs').select('*').eq('status', 'en_attente');
+            let html = '';
+            data.forEach(t => {
+                html += `<div class="tuteur-row">
+                    <div><strong>${t.prenom} ${t.nom}</strong> - ${t.matieres} (${t.prix})</div>
+                    <div>
+                        <button class="btn-v" onclick="valider('${t.id}')">Valider</button>
+                        <button class="btn-d" onclick="supprimer('${t.id}')">Supprimer</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('liste').innerHTML = html || 'Aucune candidature en attente.';
+        }
+
+        async function valider(id) {
+            await supabase.from('tuteurs').update({ status: 'valide' }).eq('id', id);
+            load();
+        }
+
+        async function supprimer(id) {
+            await supabase.from('tuteurs').delete().eq('id', id);
+            load();
+        }
+
+        load();
+    </script>
+</body>
+</html>
