@@ -1,1 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S'inscrire - TWOCO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        input, select { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
+        button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
+        .success { color: green; display: none; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Devenir Tuteur TWOCO</h2>
+        <form id="regForm">
+            <input type="text" id="prenom" placeholder="Prénom" required>
+            <input type="text" id="nom" placeholder="Nom" required>
+            <input type="text" id="matieres" placeholder="Matières (ex: Maths I, Stats)" required>
+            <input type="text" id="prix" placeholder="Prix (ex: 30 CHF)" required>
+            <input type="text" id="whatsapp" placeholder="WhatsApp (ex: 41791234567)" required>
+            <input type="text" id="lieu" placeholder="Lieu (ex: Amphimax)" required>
+            <button type="submit" id="btn">Envoyer ma candidature</button>
+        </form>
+        <p id="msg" class="success">Candidature envoyée ! Nathan va te contacter.</p>
+    </div>
 
+    <script>
+        const supabase = libsupabase.createClient('https://wjkhkxtdlrphouwsnicg.supabase.co', 'sb_publishable_xqg7T7q6ttLweAjloiT7uA_nEN7v0RB');
+
+        document.getElementById('regForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const { error } = await supabase.from('tuteurs').insert([{
+                prenom: document.getElementById('prenom').value,
+                nom: document.getElementById('nom').value,
+                matieres: document.getElementById('matieres').value,
+                prix: document.getElementById('prix').value,
+                whatsapp: document.getElementById('whatsapp').value,
+                lieu: document.getElementById('lieu').value,
+                status: 'en_attente'
+            }]);
+            if (!error) {
+                document.getElementById('regForm').style.display = 'none';
+                document.getElementById('msg').style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
