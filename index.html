@@ -1,42 +1,45 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-        // Connexion au cerveau Supabase
-        const _url = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-        const _key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+    // On utilise des noms uniques pour éviter tout conflit
+    const _url_db = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+    const _key_db = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+    
+    // On utilise "window.supabase" pour être sûr de parler au bon programme
+    const twoco_db = window.supabase.createClient(_url_db, _key_db);
+
+    async function fetchTuteurs() {
+        console.log("Démarrage de la recherche...");
         
-        // On change "const supabase =" par "const db =" pour éviter l'erreur
-        const db = supabase.createClient(_url, _key);
+        const { data, error } = await twoco_db
+            .from('tuteurs')
+            .select('*')
+            .eq('status', 'valide'); 
 
-        async function fetchTuteurs() {
-            const { data, error } = await db
-                .from('tuteurs')
-                .select('*')
-                .eq('status', 'valide'); 
-
-            const container = document.getElementById('tuteurs-container');
-            
-            if (error || !data || data.length === 0) {
-                container.innerHTML = '<p style="text-align: center; width: 100%;">Aucun tuteur disponible pour le moment.</p>';
-                return;
-            }
-
-            container.innerHTML = ''; 
-
-            data.forEach(t => {
-                container.innerHTML += `
-                    <div class="tuteur-card">
-                        <div class="tuteur-info">
-                            <span class="tag-matiere">${t.matieres}</span>
-                            <h3>${t.prenom} ${t.nom}</h3>
-                            <p class="dispo">📅 Dispo : ${t.dispo || 'À convenir'}<br>📍 ${t.lieu}</p>
-                        </div>
-                        <div class="card-footer">
-                            <div class="prix">${t.prix}</div>
-                            <a href="https://wa.me/${t.whatsapp}?text=Salut!%20Je%20te%20contacte%20via%20TWOCO" class="btn-whatsapp">WhatsApp</a>
-                        </div>
-                    </div>
-                `;
-            });
+        const container = document.getElementById('tuteurs-container');
+        
+        if (error) {
+            console.error("Erreur Supabase :", error);
+            container.innerHTML = '<p style="text-align: center;">Erreur de connexion à la base de données.</p>';
+            return;
         }
 
-        fetchTuteurs();
-    </script>
+        console.log("Données reçues :", data);
+
+        if (!data || data.length === 0) {
+            container.innerHTML = '<p style="text-align: center; width: 100%;">Aucun tuteur disponible pour le moment.</p>';
+            return;
+        }
+
+        container.innerHTML = ''; 
+
+        data.forEach(t => {
+            container.innerHTML += `
+                <div class="tuteur-card">
+                    <div class="tuteur-info">
+                        <span class="tag-matiere">${t.matieres}</span>
+                        <h3>${t.prenom} ${t.nom}</h3>
+                        <p class="dispo">📅 Dispo : ${t.dispo || 'À convenir'}<br>📍 ${t.lieu}</p>
+                    </div>
+                    <div class="card-footer">
+                        <div class="prix">${t.prix}</div>
+                        <a href="https://wa.me/${t.whatsapp}?text=Salut!%20Je%20te%20contacte%20via%20TWOCO" class="btn-whatsapp">
