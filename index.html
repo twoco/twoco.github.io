@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TWOCO - HEC Cours d'appui</title>
-    <!-- Importation d'une police moderne -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- On charge Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --dark: #0d172e;
@@ -23,10 +24,9 @@
             color: var(--dark);
         }
 
-        /* Navbar améliorée */
         .navbar { 
             background-color: var(--dark); 
-            padding: 20px; 
+            padding: 15px 20px; 
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -38,14 +38,14 @@
             margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 20px;
+            justify-content: space-between; /* Pour écarter le logo du bouton */
         }
 
-        .logo-symbol { width: 60px; height: 60px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-symbol { width: 50px; height: 50px; }
 
         .brand-title {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 800;
             letter-spacing: -1px;
             margin: 0;
@@ -53,17 +53,28 @@
         .brand-title .white { color: var(--white); }
         .brand-title .cyan { color: var(--cyan); }
 
-        /* Hero Section (Nouveau) */
+        .btn-inscription {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: 0.2s;
+        }
+        .btn-inscription:hover { background: var(--blue); border-color: var(--blue); }
+
         .hero {
             text-align: center;
             padding: 60px 20px;
             background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%);
             color: white;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
 
         .hero h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; }
-        .hero p { opacity: 0.8; font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
 
         .container { 
             max-width: 1100px; 
@@ -71,14 +82,14 @@
             padding: 0 20px; 
         }
 
-        /* Grille des Tuteurs */
         .tuteurs-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 25px;
-            margin-top: 40px;
+            margin-top: 20px;
         }
 
+        /* Le design des cartes reste identique */
         .tuteur-card { 
             background: var(--white); 
             border-radius: 20px; 
@@ -92,74 +103,39 @@
             overflow: hidden;
         }
 
-        .tuteur-card:hover { 
-            transform: translateY(-10px);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-            border-color: var(--blue);
-        }
+        .tuteur-card:hover { transform: translateY(-10px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border-color: var(--blue); }
 
         .tuteur-card::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 6px;
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
             background: linear-gradient(90deg, var(--blue), var(--cyan));
         }
 
-        .tuteur-info h3 { 
-            margin: 0 0 15px 0; 
-            font-size: 1.4rem;
-            font-weight: 700;
-        }
+        .tuteur-info h3 { margin: 0 0 15px 0; font-size: 1.4rem; font-weight: 700; }
 
         .tag-matiere { 
-            background: #f1f5f9; 
-            color: var(--blue); 
-            padding: 6px 14px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            font-size: 0.85rem; 
-            display: inline-block;
-            margin-bottom: 15px;
+            background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; 
+            font-weight: 600; font-size: 0.85rem; display: inline-block; margin-bottom: 15px;
         }
 
         .dispo { font-size: 0.9rem; color: #64748b; margin-bottom: 20px; }
 
         .card-footer {
-            margin-top: auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #f1f5f9;
-            padding-top: 20px;
+            margin-top: auto; display: flex; justify-content: space-between; align-items: center;
+            border-top: 1px solid #f1f5f9; padding-top: 20px;
         }
 
         .prix { font-size: 1.5rem; font-weight: 800; color: var(--dark); }
 
         .btn-whatsapp {
-            background-color: #25D366; 
-            color: white; 
-            text-decoration: none;
-            padding: 12px 20px; 
-            border-radius: 12px; 
-            font-weight: 700;
-            transition: 0.2s ease;
-            font-size: 0.9rem;
+            background-color: #25D366; color: white; text-decoration: none;
+            padding: 12px 20px; border-radius: 12px; font-weight: 700; transition: 0.2s ease;
         }
 
-        .btn-whatsapp:hover { background-color: #1ebd5a; }
+        footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
 
-        footer {
-            margin-top: 80px;
-            padding: 40px;
-            text-align: center;
-            background-color: var(--dark);
-            color: #94a3b8;
-        }
-
-        /* Mobile */
         @media (max-width: 600px) {
             .hero h1 { font-size: 1.8rem; }
-            .brand-title { font-size: 1.8rem; }
+            .navbar-content { flex-direction: column; gap: 15px; }
         }
     </style>
 </head>
@@ -167,48 +143,27 @@
 
     <div class="navbar">
         <div class="navbar-content">
-            <svg class="logo-symbol" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 28 32 C 28 14, 68 12, 68 32 C 68 44, 48 58, 30 76 L 76 76" stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M 72 38 C 50 34, 30 46, 30 65 C 30 84, 52 92, 74 84" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
-            </svg>
-            <div class="brand-title">
-                <span class="white">TWO</span><span class="cyan">CO</span>
+            <div class="logo-area">
+                <svg class="logo-symbol" viewBox="0 0 100 100">
+                    <path d="M 28 32 C 28 14, 68 12, 68 32 C 68 44, 48 58, 30 76 L 76 76" stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M 72 38 C 50 34, 30 46, 30 65 C 30 84, 52 92, 74 84" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+                </svg>
+                <div class="brand-title">
+                    <span class="white">TWO</span><span class="cyan">CO</span>
+                </div>
             </div>
+            <a href="inscription.html" class="btn-inscription">Devenir Tuteur</a>
         </div>
     </div>
 
     <div class="hero">
-        <h1>Réussis ton année à HEC</h1>
-        <p>Mise en relation directe entre étudiants de 1ère et 2ème année pour des cours d'appui ciblés.</p>
+        <h1>Tuteurs 2ème HEC</h1>
     </div>
 
     <div class="container">
-        <div class="tuteurs-grid">
-            <!-- TUTEUR 1 -->
-            <div class="tuteur-card">
-                <div class="tuteur-info">
-                    <span class="tag-matiere">Économie I • Maths I • Stats I</span>
-                    <h3>Nathan Coquoz</h3>
-                    <p class="dispo">📅 Dispo : Lundi soir / Mercredi après-midi<br>📍 Campus Amphimax ou Zoom</p>
-                </div>
-                <div class="card-footer">
-                    <div class="prix">30 CHF/h</div>
-                    <a href="https://wa.me/41774646513?text=Salut%20Nathan..." class="btn-whatsapp">WhatsApp</a>
-                </div>
-            </div>
-
-            <!-- TUTEUR 2 -->
-            <div class="tuteur-card">
-                <div class="tuteur-info">
-                    <span class="tag-matiere">Maths I • Comptabilité</span>
-                    <h3>Quentin Courtine</h3>
-                    <p class="dispo">📅 Dispo : Lundi / Vendredi<br>📍 Campus Amphimax ou Zoom</p>
-                </div>
-                <div class="card-footer">
-                    <div class="prix">30 CHF/h</div>
-                    <a href="https://wa.me/41793394697?text=Salut%20Quentin..." class="btn-whatsapp">WhatsApp</a>
-                </div>
-            </div>
+        <!-- Cette zone va se remplir toute seule avec les tuteurs de Supabase -->
+        <div id="tuteurs-container" class="tuteurs-grid">
+            <p style="text-align: center; color: #64748b;">Chargement des tuteurs...</p>
         </div>
     </div>
 
@@ -217,5 +172,45 @@
         <p>Fondateur : Nathan Coquoz | Co-fondateur : Quentin Courtine</p>
     </footer>
 
+    <script>
+        // Connexion au cerveau Supabase
+        const _url = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+        const _key = 'sb_publishable_xqg7T7q6ttLweAjloiT7uA_nEN7v0RB';
+        const supabase = supabase.createClient(_url, _key);
+
+        async function fetchTuteurs() {
+            const { data, error } = await supabase
+                .from('tuteurs')
+                .select('*')
+                .eq('status', 'valide'); // On n'affiche que ceux que TU as validés
+
+            const container = document.getElementById('tuteurs-container');
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p style="text-align: center; width: 100%;">Aucun tuteur disponible pour le moment.</p>';
+                return;
+            }
+
+            container.innerHTML = ''; // On vide le message de chargement
+
+            data.forEach(t => {
+                container.innerHTML += `
+                    <div class="tuteur-card">
+                        <div class="tuteur-info">
+                            <span class="tag-matiere">${t.matieres}</span>
+                            <h3>${t.prenom} ${t.nom}</h3>
+                            <p class="dispo">📅 Dispo : ${t.dispo || 'À convenir'}<br>📍 ${t.lieu}</p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="prix">${t.prix}</div>
+                            <a href="https://wa.me/${t.whatsapp}?text=Salut!%20Je%20te%20contacte%20via%20TWOCO" class="btn-whatsapp">WhatsApp</a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        fetchTuteurs();
+    </script>
 </body>
 </html>
