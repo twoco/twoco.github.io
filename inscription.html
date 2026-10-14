@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding: 20px; }
         .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         input { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
         button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
@@ -15,34 +15,29 @@
 </head>
 <body>
     <div class="container">
-        <h2 style="text-align: center;">Devenir Tuteur TWOCO</h2>
-        <form id="formFinal">
+        <h2 style="text-align:center;">Devenir Tuteur TWOCO</h2>
+        <form id="f">
             <input type="text" id="p" placeholder="Prénom" required>
             <input type="text" id="n" placeholder="Nom" required>
-            <input type="text" id="m" placeholder="Matières" required>
+            <input type="text" id="m" placeholder="Matières (ex: Maths, Stats)" required>
             <input type="text" id="px" placeholder="Prix (ex: 30 CHF)" required>
             <input type="text" id="w" placeholder="WhatsApp (ex: 4179...)" required>
-            <input type="text" id="l" placeholder="Lieu" required>
-            <button type="submit" id="btnS">Envoyer</button>
+            <input type="text" id="l" placeholder="Lieu (ex: Amphimax)" required>
+            <button type="submit" id="b">Envoyer ma candidature</button>
         </form>
-        <p id="resultat" style="display:none; text-align:center; font-weight:bold;"></p>
+        <p id="res" style="display:none; text-align:center; font-weight:bold; color:green;">Succès ! Nathan va valider ton profil.</p>
     </div>
 
     <script>
-        // ON ENFERME TOUT DANS UN BLOC POUR ÉVITER LES ERREURS DE NOM
-        {
-            const URL_DB = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-            const KEY_DB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-            
-            const client = window.supabase.createClient(URL_DB, KEY_DB);
+        (function() {
+            const U = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+            const K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+            const db = window.supabase.createClient(U, K);
 
-            document.getElementById('formFinal').onsubmit = async (e) => {
+            document.getElementById('f').onsubmit = async (e) => {
                 e.preventDefault();
-                const b = document.getElementById('btnS');
-                b.innerText = "Envoi...";
-                b.disabled = true;
-
-                const { error } = await client.from('tuteurs').insert([{
+                document.getElementById('b').innerText = "Envoi...";
+                const { error } = await db.from('tuteurs').insert([{
                     prenom: document.getElementById('p').value,
                     nom: document.getElementById('n').value,
                     matieres: document.getElementById('m').value,
@@ -53,18 +48,14 @@
                 }]);
 
                 if (error) {
-                    alert("Erreur : " + error.message);
-                    b.innerText = "Réessayer";
-                    b.disabled = false;
+                    alert("Erreur: " + error.message);
+                    document.getElementById('b').innerText = "Réessayer";
                 } else {
-                    document.getElementById('formFinal').style.display = 'none';
-                    const r = document.getElementById('resultat');
-                    r.innerText = "Candidature envoyée !";
-                    r.style.color = "green";
-                    r.style.display = "block";
+                    document.getElementById('f').style.display = 'none';
+                    document.getElementById('res').style.display = 'block';
                 }
             };
-        }
+        })();
     </script>
 </body>
 </html>
