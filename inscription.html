@@ -9,65 +9,62 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
         .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: #0d172e; }
         input { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
         button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
-        #msg { text-align: center; font-weight: bold; margin-top: 20px; display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Devenir Tuteur TWOCO</h2>
-        <form id="monFormulaire">
-            <input type="text" id="prenom" placeholder="Ton Prénom" required>
-            <input type="text" id="nom" placeholder="Ton Nom" required>
-            <input type="text" id="matieres" placeholder="Matières (ex: Maths I, Stats)" required>
-            <input type="text" id="prix" placeholder="Prix (ex: 30 CHF)" required>
-            <input type="text" id="whatsapp" placeholder="WhatsApp (ex: 41791234567)" required>
-            <input type="text" id="lieu" placeholder="Lieu (ex: Amphimax)" required>
-            <button type="submit" id="btnEnvoyer">Envoyer ma candidature</button>
+        <h2 style="text-align: center;">Devenir Tuteur TWOCO</h2>
+        <form id="formFinal">
+            <input type="text" id="p" placeholder="Prénom" required>
+            <input type="text" id="n" placeholder="Nom" required>
+            <input type="text" id="m" placeholder="Matières" required>
+            <input type="text" id="px" placeholder="Prix (ex: 30 CHF)" required>
+            <input type="text" id="w" placeholder="WhatsApp (ex: 4179...)" required>
+            <input type="text" id="l" placeholder="Lieu" required>
+            <button type="submit" id="btnS">Envoyer</button>
         </form>
-        <p id="msg"></p>
+        <p id="resultat" style="display:none; text-align:center; font-weight:bold;"></p>
     </div>
 
     <script>
-        // ON UTILISE UN NOM UNIQUE : twoco_db
-        const twoco_url = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-        const twoco_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-        
-        // C'est ici que la magie opère sans erreur
-        const twoco_db = window.supabase.createClient(twoco_url, twoco_key);
-
-        document.getElementById('monFormulaire').onsubmit = async (e) => {
-            e.preventDefault();
-            const bouton = document.getElementById('btnEnvoyer');
-            const message = document.getElementById('msg');
+        // ON ENFERME TOUT DANS UN BLOC POUR ÉVITER LES ERREURS DE NOM
+        {
+            const URL_DB = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+            const KEY_DB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
             
-            bouton.innerText = "Envoi...";
-            bouton.disabled = true;
+            const client = window.supabase.createClient(URL_DB, KEY_DB);
 
-            const { data, error } = await twoco_db.from('tuteurs').insert([{
-                prenom: document.getElementById('prenom').value,
-                nom: document.getElementById('nom').value,
-                matieres: document.getElementById('matieres').value,
-                prix: document.getElementById('prix').value,
-                whatsapp: document.getElementById('whatsapp').value,
-                lieu: document.getElementById('lieu').value,
-                status: 'en_attente'
-            }]);
+            document.getElementById('formFinal').onsubmit = async (e) => {
+                e.preventDefault();
+                const b = document.getElementById('btnS');
+                b.innerText = "Envoi...";
+                b.disabled = true;
 
-            if (error) {
-                message.innerText = "Erreur : " + error.message;
-                message.style.color = "red";
-                bouton.innerText = "Réessayer";
-                bouton.disabled = false;
-            } else {
-                document.getElementById('monFormulaire').style.display = 'none';
-                message.innerText = "Succès ! Nathan va valider ton profil.";
-                message.style.color = "green";
-            }
-            message.style.display = "block";
-        };
+                const { error } = await client.from('tuteurs').insert([{
+                    prenom: document.getElementById('p').value,
+                    nom: document.getElementById('n').value,
+                    matieres: document.getElementById('m').value,
+                    prix: document.getElementById('px').value,
+                    whatsapp: document.getElementById('w').value,
+                    lieu: document.getElementById('l').value,
+                    status: 'en_attente'
+                }]);
+
+                if (error) {
+                    alert("Erreur : " + error.message);
+                    b.innerText = "Réessayer";
+                    b.disabled = false;
+                } else {
+                    document.getElementById('formFinal').style.display = 'none';
+                    const r = document.getElementById('resultat');
+                    r.innerText = "Candidature envoyée !";
+                    r.style.color = "green";
+                    r.style.display = "block";
+                }
+            };
+        }
     </script>
 </body>
 </html>
