@@ -1,45 +1,74 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    // On utilise des noms uniques pour éviter tout conflit
-    const _url_db = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-    const _key_db = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-    
-    // On utilise "window.supabase" pour être sûr de parler au bon programme
-    const twoco_db = window.supabase.createClient(_url_db, _key_db);
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TWOCO - Tuteurs HEC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
+        .navbar { background-color: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .brand-title { font-size: 1.8rem; font-weight: 800; color: white; text-decoration: none; }
+        .brand-title span { color: var(--cyan); }
+        .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
+        .hero { text-align: center; padding: 60px 20px; background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%); color: white; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+        .tuteurs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        .tuteur-card { background: var(--white); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
+        .tuteur-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+        .tag-matiere { background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; margin-bottom: 15px; }
+        .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        .prix { font-size: 1.5rem; font-weight: 800; }
+        .btn-whatsapp { background-color: #25D366; color: white; text-decoration: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
+        footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html" class="brand-title">TWO<span>CO</span></a>
+        <a href="inscription.html" class="btn-inscription">Devenir Tuteur</a>
+    </div>
+    <div class="hero"><h1>Tuteurs 2ème HEC</h1></div>
+    <div class="container">
+        <div id="tuteurs-container" class="tuteurs-grid">
+            <p style="text-align: center; width: 100%;">Chargement des tuteurs...</p>
+        </div>
+    </div>
+    <footer><p>&copy; 2026 Twoco HEC - Nathan Coquoz & Quentin Courtine</p></footer>
 
-    async function fetchTuteurs() {
-        console.log("Démarrage de la recherche...");
-        
-        const { data, error } = await twoco_db
-            .from('tuteurs')
-            .select('*')
-            .eq('status', 'valide'); 
+    <script>
+        (function() {
+            const URL_DB = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+            const KEY_DB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+            const twoco_api = window.supabase.createClient(URL_DB, KEY_DB);
 
-        const container = document.getElementById('tuteurs-container');
-        
-        if (error) {
-            console.error("Erreur Supabase :", error);
-            container.innerHTML = '<p style="text-align: center;">Erreur de connexion à la base de données.</p>';
-            return;
-        }
-
-        console.log("Données reçues :", data);
-
-        if (!data || data.length === 0) {
-            container.innerHTML = '<p style="text-align: center; width: 100%;">Aucun tuteur disponible pour le moment.</p>';
-            return;
-        }
-
-        container.innerHTML = ''; 
-
-        data.forEach(t => {
-            container.innerHTML += `
-                <div class="tuteur-card">
-                    <div class="tuteur-info">
-                        <span class="tag-matiere">${t.matieres}</span>
-                        <h3>${t.prenom} ${t.nom}</h3>
-                        <p class="dispo">📅 Dispo : ${t.dispo || 'À convenir'}<br>📍 ${t.lieu}</p>
-                    </div>
-                    <div class="card-footer">
-                        <div class="prix">${t.prix}</div>
-                        <a href="https://wa.me/${t.whatsapp}?text=Salut!%20Je%20te%20contacte%20via%20TWOCO" class="btn-whatsapp">
+            async function load() {
+                const { data, error } = await twoco_api.from('tuteurs').select('*').eq('status', 'valide');
+                const container = document.getElementById('tuteurs-container');
+                if (error || !data || data.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; width: 100%;">Aucun tuteur disponible pour le moment.</p>';
+                    return;
+                }
+                container.innerHTML = '';
+                data.forEach(t => {
+                    container.innerHTML += `
+                        <div class="tuteur-card">
+                            <div class="tuteur-info">
+                                <span class="tag-matiere">${t.matieres}</span>
+                                <h3>${t.prenom} ${t.nom}</h3>
+                                <p>📍 ${t.lieu}<br>📅 ${t.dispo || 'À convenir'}</p>
+                            </div>
+                            <div class="card-footer">
+                                <div class="prix">${t.prix}</div>
+                                <a href="https://wa.me/${t.whatsapp}" class="btn-whatsapp">WhatsApp</a>
+                            </div>
+                        </div>`;
+                });
+            }
+            load();
+        })();
+    </script>
+</body>
+</html>
