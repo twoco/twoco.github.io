@@ -9,32 +9,43 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
         .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        input, select { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
+        h2 { text-align: center; color: #0d172e; }
+        input { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
         button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
-        .success { color: green; display: none; text-align: center; font-weight: bold; }
+        .success-msg { color: green; text-align: center; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Devenir Tuteur TWOCO</h2>
         <form id="regForm">
-            <input type="text" id="prenom" placeholder="Prénom" required>
-            <input type="text" id="nom" placeholder="Nom" required>
+            <input type="text" id="prenom" placeholder="Ton Prénom" required>
+            <input type="text" id="nom" placeholder="Ton Nom" required>
             <input type="text" id="matieres" placeholder="Matières (ex: Maths I, Stats)" required>
             <input type="text" id="prix" placeholder="Prix (ex: 30 CHF)" required>
             <input type="text" id="whatsapp" placeholder="WhatsApp (ex: 41791234567)" required>
             <input type="text" id="lieu" placeholder="Lieu (ex: Amphimax)" required>
-            <button type="submit" id="btn">Envoyer ma candidature</button>
+            <button type="submit" id="submitBtn">Envoyer ma candidature</button>
         </form>
-        <p id="msg" class="success">Candidature envoyée ! Nathan va te contacter.</p>
+        <p id="msg" class="success-msg">Candidature envoyée avec succès !</p>
     </div>
 
     <script>
-        const supabase = libsupabase.createClient('https://wjkhkxtdlrphouwsnicg.supabase.co', 'sb_publishable_xqg7T7q6ttLweAjloiT7uA_nEN7v0RB');
+        const _url = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+        const _key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+        
+        // On utilise "db" pour éviter l'erreur
+        const db = supabase.createClient(_url, _key);
 
         document.getElementById('regForm').onsubmit = async (e) => {
             e.preventDefault();
-            const { error } = await supabase.from('tuteurs').insert([{
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "Envoi en cours...";
+            btn.disabled = true;
+
+            console.log("Tentative d'envoi...");
+
+            const { data, error } = await db.from('tuteurs').insert([{
                 prenom: document.getElementById('prenom').value,
                 nom: document.getElementById('nom').value,
                 matieres: document.getElementById('matieres').value,
@@ -43,7 +54,14 @@
                 lieu: document.getElementById('lieu').value,
                 status: 'en_attente'
             }]);
-            if (!error) {
+
+            if (error) {
+                alert("Erreur lors de l'envoi : " + error.message);
+                console.error(error);
+                btn.innerText = "Réessayer";
+                btn.disabled = false;
+            } else {
+                console.log("Succès !");
                 document.getElementById('regForm').style.display = 'none';
                 document.getElementById('msg').style.display = 'block';
             }
