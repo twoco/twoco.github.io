@@ -39,36 +39,55 @@
     <footer><p>&copy; 2026 Twoco HEC - Nathan Coquoz & Quentin Courtine</p></footer>
 
     <script>
-        (function() {
-            const URL_DB = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-            const KEY_DB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-            const twoco_api = window.supabase.createClient(URL_DB, KEY_DB);
+        // ON UTILISE UN BLOC {} POUR ISOLER ET ÉVITER LES ERREURS DE NOM
+        {
+            const URL = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+            const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+            
+            // On utilise un nom de variable unique : dbTwoco
+            const dbTwoco = window.supabase.createClient(URL, KEY);
 
-            async function load() {
-                const { data, error } = await twoco_api.from('tuteurs').select('*').eq('status', 'valide');
+            async function charger() {
                 const container = document.getElementById('tuteurs-container');
-                if (error || !data || data.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; width: 100%;">Aucun tuteur disponible pour le moment.</p>';
+                
+                // On récupère les données
+                const { data, error } = await dbTwoco.from('tuteurs').select('*').eq('status', 'valide');
+
+                if (error) {
+                    container.innerHTML = "<p style='text-align:center;width:100%;'>Erreur : " + error.message + "</p>";
                     return;
                 }
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = "<p style='text-align:center;width:100%;'>Aucun tuteur trouvé. Ajoute un tuteur sur Supabase !</p>";
+                    return;
+                }
+
                 container.innerHTML = '';
                 data.forEach(t => {
+                    // On gère le cas où certaines colonnes sont vides
+                    const nomAffiche = t.nom || "Anonyme";
+                    const matieresAffiche = t.matieres || "Matières à définir";
+                    const prixAffiche = t.prix || "30 CHF";
+                    const lieuAffiche = t.lieu || "Campus HEC";
+                    const whatsappAffiche = t.whatsapp || "41791234567";
+
                     container.innerHTML += `
                         <div class="tuteur-card">
                             <div class="tuteur-info">
-                                <span class="tag-matiere">${t.matieres}</span>
-                                <h3>${t.prenom} ${t.nom}</h3>
-                                <p>📍 ${t.lieu}<br>📅 ${t.dispo || 'À convenir'}</p>
+                                <span class="tag-matiere">${matieresAffiche}</span>
+                                <h3>${nomAffiche}</h3>
+                                <p>📍 ${lieuAffiche}<br>📅 Dispo à convenir</p>
                             </div>
                             <div class="card-footer">
-                                <div class="prix">${t.prix}</div>
-                                <a href="https://wa.me/${t.whatsapp}" class="btn-whatsapp">WhatsApp</a>
+                                <div class="prix">${prixAffiche}</div>
+                                <a href="https://wa.me/${whatsappAffiche}" class="btn-whatsapp">WhatsApp</a>
                             </div>
                         </div>`;
                 });
             }
-            load();
-        })();
+            charger();
+        }
     </script>
 </body>
 </html>
