@@ -1,61 +1,33 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S'inscrire - TWOCO</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <title>Inscription Test</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding: 20px; }
-        .container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        input { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <h2 style="text-align:center;">Devenir Tuteur TWOCO</h2>
-        <form id="f">
-            <input type="text" id="p" placeholder="Prénom" required>
-            <input type="text" id="n" placeholder="Nom" required>
-            <input type="text" id="m" placeholder="Matières (ex: Maths, Stats)" required>
-            <input type="text" id="px" placeholder="Prix (ex: 30 CHF)" required>
-            <input type="text" id="w" placeholder="WhatsApp (ex: 4179...)" required>
-            <input type="text" id="l" placeholder="Lieu (ex: Amphimax)" required>
-            <button type="submit" id="b">Envoyer ma candidature</button>
-        </form>
-        <p id="res" style="display:none; text-align:center; font-weight:bold; color:green;">Succès ! Nathan va valider ton profil.</p>
-    </div>
+    <h1>S'inscrire (Test)</h1>
+    <input type="text" id="nomInput" placeholder="Ton nom">
+    <button onclick="envoyer()">Envoyer</button>
+    <p id="resultat"></p>
 
     <script>
-        (function() {
-            const U = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-            const K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-            const db = window.supabase.createClient(U, K);
+        {
+            const URL = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
+            const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
+            const nathan_db = window.supabase.createClient(URL, KEY);
 
-            document.getElementById('f').onsubmit = async (e) => {
-                e.preventDefault();
-                document.getElementById('b').innerText = "Envoi...";
-                const { error } = await db.from('tuteurs').insert([{
-                    prenom: document.getElementById('p').value,
-                    nom: document.getElementById('n').value,
-                    matieres: document.getElementById('m').value,
-                    prix: document.getElementById('px').value,
-                    whatsapp: document.getElementById('w').value,
-                    lieu: document.getElementById('l').value,
-                    status: 'en_attente'
-                }]);
-
+            async function envoyer() {
+                const nomValeur = document.getElementById('nomInput').value;
+                const { error } = await nathan_db.from('tuteurs').insert([{ nom: nomValeur, status: 'valide' }]);
+                
                 if (error) {
-                    alert("Erreur: " + error.message);
-                    document.getElementById('b').innerText = "Réessayer";
+                    alert("Erreur : " + error.message);
                 } else {
-                    document.getElementById('f').style.display = 'none';
-                    document.getElementById('res').style.display = 'block';
+                    document.getElementById('resultat').innerHTML = "Succès ! Rafraîchis la page d'accueil.";
                 }
-            };
-        })();
+            }
+            window.envoyer = envoyer; // Pour que le bouton trouve la fonction
+        }
     </script>
 </body>
 </html>
