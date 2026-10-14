@@ -1,32 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Inscription Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S'inscrire - TWOCO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: 80px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        input { width: 100%; padding: 12px; margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
+        button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
+        #res { margin-top: 20px; font-weight: bold; color: green; display: none; }
+    </style>
 </head>
 <body>
-    <h1>S'inscrire (Test)</h1>
-    <input type="text" id="nomInput" placeholder="Ton nom">
-    <button onclick="envoyer()">Envoyer</button>
-    <p id="resultat"></p>
+    <div class="container">
+        <h2>Test Inscription</h2>
+        <p>Tape juste ton nom pour tester la connexion.</p>
+        <input type="text" id="nomInput" placeholder="Ton nom (ex: Nathan)">
+        <button onclick="envoyer()">Envoyer le test</button>
+        <p id="res">Succès ! Retourne sur l'accueil.</p>
+    </div>
 
     <script>
         {
             const URL = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
             const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-            const nathan_db = window.supabase.createClient(URL, KEY);
+            const dbTwoco = window.supabase.createClient(URL, KEY);
 
             async function envoyer() {
-                const nomValeur = document.getElementById('nomInput').value;
-                const { error } = await nathan_db.from('tuteurs').insert([{ nom: nomValeur, status: 'valide' }]);
+                const nomVal = document.getElementById('nomInput').value;
+                const btn = document.querySelector('button');
+                btn.innerText = "Envoi...";
                 
+                // On envoie juste le nom. Le status sera "valide" par défaut.
+                const { error } = await dbTwoco.from('tuteurs').insert([{ 
+                    nom: nomVal, 
+                    status: 'valide' 
+                }]);
+
                 if (error) {
                     alert("Erreur : " + error.message);
+                    btn.innerText = "Réessayer";
                 } else {
-                    document.getElementById('resultat').innerHTML = "Succès ! Rafraîchis la page d'accueil.";
+                    document.getElementById('nomInput').style.display = 'none';
+                    btn.style.display = 'none';
+                    document.getElementById('res').style.display = 'block';
                 }
             }
-            window.envoyer = envoyer; // Pour que le bouton trouve la fonction
+            window.envoyer = envoyer;
         }
     </script>
 </body>
