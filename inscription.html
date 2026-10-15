@@ -23,6 +23,7 @@
         .row { display: flex; gap: 12px; }
         .row > div { flex: 1; }
         .choix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .sem { margin: 14px 0 0; font-weight: 600; font-size: 0.85rem; color: #64748b; }
         .chip { margin: 0; font-weight: 600; cursor: pointer; }
         .chip input { position: absolute; opacity: 0; pointer-events: none; }
         .chip span { display: inline-block; padding: 8px 14px; border: 1px solid #e2e8f0; border-radius: 999px; font-size: 0.85rem; background: #f8fafc; }
@@ -34,6 +35,8 @@
         button:disabled { opacity: 0.6; cursor: wait; }
         #erreur { color: #b91c1c; font-weight: 600; margin-top: 16px; display: none; }
         #succes { display: none; text-align: center; }
+        [hidden] { display: none !important; }
+        .prix-fixe { margin-top: 18px; padding: 12px 14px; background: #f1f5f9; border-radius: 10px; font-weight: 600; }
         .hp { position: absolute; left: -9999px; }
         a.retour { display: inline-block; margin-top: 16px; color: var(--blue); font-weight: 600; }
     </style>
@@ -53,7 +56,7 @@
 
             <fieldset>
                 <legend>Matières que tu enseignes <span class="hint">(plusieurs choix possibles)</span></legend>
-                <div class="choix" id="matieres-box"></div>
+                <div id="matieres-box"></div>
             </fieldset>
 
             <fieldset>
@@ -61,8 +64,11 @@
                 <div class="choix" id="lieux-box"></div>
             </fieldset>
 
-            <label for="prix">Prix par heure (CHF)</label>
-            <input type="number" id="prix" step="1" required>
+            <div id="prix-libre">
+                <label for="prix">Prix par heure (CHF)</label>
+                <input type="number" id="prix" step="1">
+            </div>
+            <p id="prix-fixe" class="prix-fixe" hidden></p>
 
             <label for="whatsapp">Numéro WhatsApp <span class="hint">(ex : 079 123 45 67)</span></label>
             <input type="tel" id="whatsapp" maxlength="25" required>
@@ -96,10 +102,23 @@
                 `<label class="chip"><input type="checkbox" name="${nom}" value="${esc(v)}"><span>${esc(v)}</span></label>`
             ).join('');
         }
-        remplirChoix('matieres-box', CONFIG.MATIERES, 'matiere');
+        // Matières groupées par semestre (accepte aussi une simple liste)
+        const groupes = Array.isArray(CONFIG.MATIERES) ? { '': CONFIG.MATIERES } : CONFIG.MATIERES;
+        $('matieres-box').innerHTML = Object.entries(groupes).map(([semestre, liste]) =>
+            (semestre ? `<p class="sem">${esc(semestre)}</p>` : '') +
+            `<div class="choix">${liste.map(v =>
+                `<label class="chip"><input type="checkbox" name="matiere" value="${esc(v)}"><span>${esc(v)}</span></label>`
+            ).join('')}</div>`
+        ).join('');
         remplirChoix('lieux-box', CONFIG.LIEUX, 'lieu');
-        $('prix').min = CONFIG.PRIX_MIN;
-        $('prix').max = CONFIG.PRIX_MAX;
+        if (CONFIG.PRIX_FIXE) {
+            $('prix-libre').hidden = true;
+            $('prix-fixe').hidden = false;
+            $('prix-fixe').textContent = `Tarif : ${CONFIG.PRIX_FIXE} CHF par heure`;
+        } else {
+            $('prix').min = CONFIG.PRIX_MIN;
+            $('prix').max = CONFIG.PRIX_MAX;
+        }
 
         const coches = nom => [...document.querySelectorAll(`input[name="${nom}"]:checked`)].map(i => i.value);
 
@@ -125,7 +144,7 @@
             const nom = $('nom').value.trim();
             const matieres = coches('matiere');
             const lieux = coches('lieu');
-            const prixNum = Number($('prix').value);
+            const prixNum = CONFIG.PRIX_FIXE || Number($('prix').value);
             const whatsapp = normaliserTel($('whatsapp').value);
 
             if (!prenom || !nom) return montrerErreur('Indique ton prénom et ton nom.');
