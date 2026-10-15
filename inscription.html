@@ -3,54 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S'inscrire - TWOCO</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Devenir tuteur - TWOCO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
-        .container { max-width: 400px; margin: 80px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
-        input { width: 100%; padding: 12px; margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 20px; cursor: pointer; }
-        #res { margin-top: 20px; font-weight: bold; color: green; display: none; }
+        :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
+        .navbar { background: var(--dark); padding: 15px 20px; }
+        .brand-title { font-size: 1.8rem; font-weight: 800; color: white; text-decoration: none; }
+        .brand-title span { color: var(--cyan); }
+        .card { max-width: 460px; margin: 40px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; }
+        label, legend { display: block; font-weight: 600; font-size: 0.9rem; margin-top: 18px; padding: 0; }
+        fieldset { border: none; padding: 0; margin: 0; }
+        .hint { font-weight: 400; color: #64748b; font-size: 0.8rem; }
+        input[type=text], input[type=tel], input[type=number] { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font: inherit; }
+        input:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+        .row { display: flex; gap: 12px; }
+        .row > div { flex: 1; }
+        .choix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .chip { margin: 0; font-weight: 600; cursor: pointer; }
+        .chip input { position: absolute; opacity: 0; pointer-events: none; }
+        .chip span { display: inline-block; padding: 8px 14px; border: 1px solid #e2e8f0; border-radius: 999px; font-size: 0.85rem; background: #f8fafc; }
+        .chip input:checked + span { background: var(--blue); border-color: var(--blue); color: white; }
+        .chip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .consent { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 0.85rem; margin-top: 22px; }
+        .consent input { margin-top: 3px; }
+        button { width: 100%; background: var(--blue); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 1rem; margin-top: 24px; cursor: pointer; }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        #erreur { color: #b91c1c; font-weight: 600; margin-top: 16px; display: none; }
+        #succes { display: none; text-align: center; }
+        .hp { position: absolute; left: -9999px; }
+        a.retour { display: inline-block; margin-top: 16px; color: var(--blue); font-weight: 600; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Test Inscription</h2>
-        <p>Tape juste ton nom pour tester la connexion.</p>
-        <input type="text" id="nomInput" placeholder="Ton nom (ex: Nathan)">
-        <button onclick="envoyer()">Envoyer le test</button>
-        <p id="res">Succès ! Retourne sur l'accueil.</p>
+    <div class="navbar"><a href="index.html" class="brand-title">TWO<span>CO</span></a></div>
+
+    <div class="card">
+        <form id="formulaire" novalidate>
+            <h2>Devenir tuteur</h2>
+            <p class="hint">Ton profil sera visible sur le site après validation par l'équipe Twoco.</p>
+
+            <div class="row">
+                <div><label for="prenom">Prénom</label><input type="text" id="prenom" maxlength="40" required></div>
+                <div><label for="nom">Nom</label><input type="text" id="nom" maxlength="40" required></div>
+            </div>
+
+            <fieldset>
+                <legend>Matières que tu enseignes <span class="hint">(plusieurs choix possibles)</span></legend>
+                <div class="choix" id="matieres-box"></div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Lieux possibles <span class="hint">(plusieurs choix possibles)</span></legend>
+                <div class="choix" id="lieux-box"></div>
+            </fieldset>
+
+            <label for="prix">Prix par heure (CHF)</label>
+            <input type="number" id="prix" step="1" required>
+
+            <label for="whatsapp">Numéro WhatsApp <span class="hint">(ex : 079 123 45 67)</span></label>
+            <input type="tel" id="whatsapp" maxlength="25" required>
+
+            <label class="consent">
+                <input type="checkbox" id="consent">
+                <span>J'accepte que mon prénom, mon nom, mon numéro WhatsApp et mes informations de cours soient affichés publiquement sur ce site. Je peux demander leur retrait à tout moment.</span>
+            </label>
+
+            <input type="text" id="site" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <p id="erreur" role="alert"></p>
+            <button type="submit" id="envoyer">Envoyer ma candidature</button>
+        </form>
+
+        <div id="succes">
+            <h2>Candidature envoyée</h2>
+            <p>Merci ! Ton profil apparaîtra sur le site dès qu'il aura été validé.</p>
+            <a href="index.html" class="retour">Retour à l'accueil</a>
+        </div>
     </div>
 
     <script>
-        {
-            const URL = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-            const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-            const dbTwoco = window.supabase.createClient(URL, KEY);
+        const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-            async function envoyer() {
-                const nomVal = document.getElementById('nomInput').value;
-                const btn = document.querySelector('button');
-                btn.innerText = "Envoi...";
-                
-                // On envoie juste le nom. Le status sera "valide" par défaut.
-                const { error } = await dbTwoco.from('tuteurs').insert([{ 
-                    nom: nomVal, 
-                    status: 'valide' 
-                }]);
-
-                if (error) {
-                    alert("Erreur : " + error.message);
-                    btn.innerText = "Réessayer";
-                } else {
-                    document.getElementById('nomInput').style.display = 'none';
-                    btn.style.display = 'none';
-                    document.getElementById('res').style.display = 'block';
-                }
-            }
-            window.envoyer = envoyer;
+        // Les cases sont générées à partir de config.js
+        function remplirChoix(boxId, liste, nom) {
+            $(boxId).innerHTML = liste.map(v =>
+                `<label class="chip"><input type="checkbox" name="${nom}" value="${esc(v)}"><span>${esc(v)}</span></label>`
+            ).join('');
         }
+        remplirChoix('matieres-box', CONFIG.MATIERES, 'matiere');
+        remplirChoix('lieux-box', CONFIG.LIEUX, 'lieu');
+        $('prix').min = CONFIG.PRIX_MIN;
+        $('prix').max = CONFIG.PRIX_MAX;
+
+        const coches = nom => [...document.querySelectorAll(`input[name="${nom}"]:checked`)].map(i => i.value);
+
+        function normaliserTel(brut) {
+            let n = brut.replace(/\D/g, '');
+            if (n.startsWith('00')) n = n.slice(2);
+            else if (n.startsWith('0')) n = '41' + n.slice(1);
+            return (n.length >= 11 && n.length <= 15) ? n : null;
+        }
+
+        function montrerErreur(msg) {
+            const e = $('erreur');
+            e.textContent = msg;
+            e.style.display = 'block';
+        }
+
+        $('formulaire').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            $('erreur').style.display = 'none';
+            if ($('site').value) return;
+
+            const prenom = $('prenom').value.trim();
+            const nom = $('nom').value.trim();
+            const matieres = coches('matiere');
+            const lieux = coches('lieu');
+            const prixNum = Number($('prix').value);
+            const whatsapp = normaliserTel($('whatsapp').value);
+
+            if (!prenom || !nom) return montrerErreur('Indique ton prénom et ton nom.');
+            if (matieres.length === 0) return montrerErreur('Choisis au moins une matière.');
+            if (lieux.length === 0) return montrerErreur('Choisis au moins un lieu.');
+            if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
+                return montrerErreur(`Indique un prix entre ${CONFIG.PRIX_MIN} et ${CONFIG.PRIX_MAX} CHF par heure.`);
+            if (!whatsapp) return montrerErreur('Numéro WhatsApp invalide. Exemple : 079 123 45 67.');
+            if (!$('consent').checked) return montrerErreur('Tu dois accepter l\'affichage public de tes informations.');
+
+            const btn = $('envoyer');
+            btn.disabled = true;
+            btn.textContent = 'Envoi en cours...';
+
+            const { error } = await db.from('tuteurs').insert([{
+                prenom, nom, whatsapp,
+                matieres: matieres.join(', '),
+                lieu: lieux.join(', '),
+                prix: prixNum + ' CHF/h',
+                status: 'en_attente'
+            }]);
+
+            if (error) {
+                console.error(error);
+                montrerErreur('L\'envoi a échoué. Réessaie dans un instant.');
+                btn.disabled = false;
+                btn.textContent = 'Envoyer ma candidature';
+                return;
+            }
+            $('formulaire').style.display = 'none';
+            $('succes').style.display = 'block';
+        });
     </script>
 </body>
 </html>
