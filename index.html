@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TWOCO - Tuteurs HEC</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
@@ -15,79 +16,81 @@
         .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
         .hero { text-align: center; padding: 60px 20px; background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%); color: white; }
         .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
-        .tuteurs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        .tuteurs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 25px; }
         .tuteur-card { background: var(--white); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
         .tuteur-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
-        .tag-matiere { background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; margin-bottom: 15px; }
+        .tag-matiere { margin: 0 6px 8px 0; background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; }
         .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
         .prix { font-size: 1.5rem; font-weight: 800; }
         .btn-whatsapp { background-color: #25D366; color: white; text-decoration: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
+        .msg { text-align: center; grid-column: 1 / -1; color: #475569; }
         footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
     </style>
 </head>
 <body>
     <div class="navbar">
         <a href="index.html" class="brand-title">TWO<span>CO</span></a>
-        <a href="inscription.html" class="btn-inscription">Devenir Tuteur</a>
+        <a href="inscription.html" class="btn-inscription">Devenir tuteur</a>
     </div>
     <div class="hero"><h1>Tuteurs 2ème HEC</h1></div>
     <div class="container">
         <div id="tuteurs-container" class="tuteurs-grid">
-            <p style="text-align: center; width: 100%;">Chargement des tuteurs...</p>
+            <p class="msg">Chargement des tuteurs...</p>
         </div>
     </div>
-    <footer><p>&copy; 2026 Twoco HEC - Nathan Coquoz & Quentin Courtine</p></footer>
+    <footer><p>&copy; 2026 Twoco HEC - Nathan Coquoz &amp; Quentin Courtine</p></footer>
 
     <script>
-        // ON UTILISE UN BLOC {} POUR ISOLER ET ÉVITER LES ERREURS DE NOM
-        {
-            const URL = 'https://wjkhkxtdlrphouwsnicg.supabase.co';
-            const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI';
-            
-            // On utilise un nom de variable unique : dbTwoco
-            const dbTwoco = window.supabase.createClient(URL, KEY);
+        const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
-            async function charger() {
-                const container = document.getElementById('tuteurs-container');
-                
-                // On récupère les données
-                const { data, error } = await dbTwoco.from('tuteurs').select('*').eq('status', 'valide');
+        // Neutralise tout HTML dans les textes saisis par les tuteurs
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-                if (error) {
-                    container.innerHTML = "<p style='text-align:center;width:100%;'>Erreur : " + error.message + "</p>";
-                    return;
-                }
+        async function charger() {
+            const container = document.getElementById('tuteurs-container');
 
-                if (!data || data.length === 0) {
-                    container.innerHTML = "<p style='text-align:center;width:100%;'>Aucun tuteur trouvé. Ajoute un tuteur sur Supabase !</p>";
-                    return;
-                }
+            const { data, error } = await db
+                .from('tuteurs')
+                .select('id, prenom, nom, matieres, prix, lieu, whatsapp')
+                .eq('status', 'valide')
+                .order('created_at', { ascending: false });
 
-                container.innerHTML = '';
-                data.forEach(t => {
-                    // On gère le cas où certaines colonnes sont vides
-                    const nomAffiche = t.nom || "Anonyme";
-                    const matieresAffiche = t.matieres || "Matières à définir";
-                    const prixAffiche = t.prix || "30 CHF";
-                    const lieuAffiche = t.lieu || "Campus HEC";
-                    const whatsappAffiche = t.whatsapp || "41791234567";
-
-                    container.innerHTML += `
-                        <div class="tuteur-card">
-                            <div class="tuteur-info">
-                                <span class="tag-matiere">${matieresAffiche}</span>
-                                <h3>${nomAffiche}</h3>
-                                <p>📍 ${lieuAffiche}<br>📅 Dispo à convenir</p>
-                            </div>
-                            <div class="card-footer">
-                                <div class="prix">${prixAffiche}</div>
-                                <a href="https://wa.me/${whatsappAffiche}" class="btn-whatsapp">WhatsApp</a>
-                            </div>
-                        </div>`;
-                });
+            if (error) {
+                console.error(error);
+                container.innerHTML = '<p class="msg">Impossible de charger les tuteurs pour le moment. Réessaie dans quelques minutes.</p>';
+                return;
             }
-            charger();
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p class="msg">Aucun tuteur pour le moment. Sois le premier à t\'inscrire !</p>';
+                return;
+            }
+
+            container.innerHTML = data.map(t => {
+                const tags = String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean)
+                    .map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
+                const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');
+                const tel = String(t.whatsapp || '').replace(/\D/g, '');
+                const message = encodeURIComponent('Bonjour, je te contacte depuis Twoco pour des cours d\'appui.');
+                const bouton = tel
+                    ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" target="_blank" rel="noopener">WhatsApp</a>`
+                    : '';
+                return `
+                    <div class="tuteur-card">
+                        <div class="tuteur-info">
+                            <div style="margin-bottom:15px">${tags}</div>
+                            <h3>${nom}</h3>
+                            <p>📍 ${esc(t.lieu || 'Campus HEC')}<br>📅 Dispo à convenir</p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="prix">${esc(t.prix || '')}</div>
+                            ${bouton}
+                        </div>
+                    </div>`;
+            }).join('');
         }
+
+        charger();
     </script>
 </body>
 </html>
