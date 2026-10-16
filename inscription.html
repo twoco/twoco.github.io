@@ -55,6 +55,24 @@
             </div>
 
             <fieldset>
+                <legend>Année d'étude <span class="hint">(choix unique)</span></legend>
+                <div class="choix" id="annee-box">
+                    <label class="chip"><input type="radio" name="annee_etude" value="2ème année"><span>2ème année</span></label>
+                    <label class="chip"><input type="radio" name="annee_etude" value="3ème année"><span>3ème année</span></label>
+                    <label class="chip"><input type="radio" name="annee_etude" value="Master"><span>Master</span></label>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Langues parlées <span class="hint">(plusieurs choix possibles)</span></legend>
+                <div class="choix" id="langues-box">
+                    <label class="chip"><input type="checkbox" name="langue" value="Français"><span>Français</span></label>
+                    <label class="chip"><input type="checkbox" name="langue" value="Anglais"><span>Anglais</span></label>
+                    <label class="chip"><input type="checkbox" name="langue" value="Italien"><span>Italien</span></label>
+                </div>
+            </fieldset>
+
+            <fieldset>
                 <legend>Matières que tu enseignes <span class="hint">(plusieurs choix possibles)</span></legend>
                 <div id="matieres-box"></div>
             </fieldset>
@@ -142,12 +160,17 @@
 
             const prenom = $('prenom').value.trim();
             const nom = $('nom').value.trim();
+            const anneeSelectionnee = document.querySelector('input[name="annee_etude"]:checked');
+            const anneeEtude = anneeSelectionnee ? anneeSelectionnee.value : '';
+            const langues = coches('langue');
             const matieres = coches('matiere');
             const lieux = coches('lieu');
             const prixNum = CONFIG.PRIX_FIXE || Number($('prix').value);
             const whatsapp = normaliserTel($('whatsapp').value);
 
             if (!prenom || !nom) return montrerErreur('Indique ton prénom et ton nom.');
+            if (!anneeEtude) return montrerErreur('Choisis ton année d\'étude.');
+            if (langues.length === 0) return montrerErreur('Choisis au moins une langue parlée.');
             if (matieres.length === 0) return montrerErreur('Choisis au moins une matière.');
             if (lieux.length === 0) return montrerErreur('Choisis au moins un lieu.');
             if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
@@ -160,7 +183,11 @@
             btn.textContent = 'Envoi en cours...';
 
             const { error } = await db.from('tuteurs').insert([{
-                prenom, nom, whatsapp,
+                prenom, 
+                nom, 
+                whatsapp,
+                annee_etude: anneeEtude,
+                langues: langues.join(', '),
                 matieres: matieres.join(', '),
                 lieu: lieux.join(', '),
                 prix: prixNum + ' CHF/h',
@@ -174,8 +201,7 @@
                 btn.textContent = 'Envoyer ma candidature';
                 return;
             }
-            $('formulaire').style.display = 'none';
-            $('succes').style.display = 'block';
+            $('formulaire').style.display = 'none';$('succes').style.display = 'block';
         });
     </script>
 </body>
