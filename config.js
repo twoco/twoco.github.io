@@ -7,9 +7,22 @@ const CONFIG = {
     SUPABASE_URL: 'https://wjkhkxtdlrphouwsnicg.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI',
 
+    // Années d'étude proposées dans le formulaire (choix unique)
+    ANNEES_ETUDE: [
+        '2ème année',
+        '3ème année',
+        'Master'
+    ],
+
+    // Langues parlées proposées dans le formulaire (plusieurs choix possibles)
+    LANGUES: [
+        'Français',
+        'Allemand',
+        'Anglais',
+        'Italien'
+    ],
+
     // Matières proposées dans le formulaire, regroupées par semestre.
-    // Pour ajouter un cours : ajoute une ligne dans le bon semestre (avec une virgule à la fin).
-    // Si le nom contient une apostrophe, entoure-le de guillemets "comme ça".
     MATIERES: {
         'Premier semestre': [
             'Modèles informatiques',
