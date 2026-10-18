@@ -75,10 +75,9 @@ const CONFIG = {
 
     // Lieux proposés dans le formulaire
     LIEUX: [
-        'Campus UNIL (Internef)',
-        'Bibliothèque',
-        'En ligne',
-        'Lausanne centre'
+        'Campus UNIL (Internef/Amphimax)',
+        'Bibliothèque BU',
+        'En ligne'
     ],
 
     // Prix fixe (CHF par heure). Le tuteur ne peut pas le choisir.
@@ -87,5 +86,5 @@ const CONFIG = {
 
     // Fourchette acceptée, utilisée seulement si PRIX_FIXE est null
     PRIX_MIN: 10,
-    PRIX_MAX: 100
+    PRIX_MAX: 50
 };
