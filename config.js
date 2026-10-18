@@ -47,7 +47,7 @@ const CONFIG = {
                     nom: '1ère année',
                     // EXEMPLES à remplacer par les vrais cours
                     matieres: [
-                        'Introduction au droit'
+                        'Introduction au droit',
                         'Droit constitutionnel',
                         'Droit des personnes',
                         'Droit pénal',
