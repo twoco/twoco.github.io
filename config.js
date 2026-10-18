@@ -7,41 +7,69 @@ const CONFIG = {
     SUPABASE_URL: 'https://wjkhkxtdlrphouwsnicg.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI',
 
-    // Facultés du site. Chaque faculté a ses matières (liste simple, ou groupes par semestre).
-    // Pour ajouter une faculté : copie un bloc, change la clé (ex: lettres) et le contenu.
+    // Facultés du site. Chaque faculté a des années, et chaque année ses matières
+    // (liste simple, ou groupes par semestre).
+    // Pour ajouter une faculté : copie un bloc, change la clé (ex: bio) et le contenu.
+    // Pour ajouter une année : copie le bloc "'1': {...}" dans annees et change la clé ('2').
     FACULTES: {
         hec: {
             nom: 'HEC',
             sous_titre: 'Hautes études commerciales',
-            matieres: {
-                'Premier semestre': [
-                    'Modèles informatiques',
-                    'Statistique',
-                    'Mathématiques I',
-                    'Comptabilité financière (BSc)',
-                    'Economie I',
-                    "Introduction au management et à l'éthique des affaires"
-                ],
-                'Deuxième semestre': [
-                    'Introduction à la programmation',
-                    'Comportement organisationnel',
-                    'Régression et analyse causale',
-                    "Droit et conformité de l'entreprise",
-                    'Mathématiques II',
-                    'Economie II'
-                ]
+            annees: {
+                '1': {
+                    nom: '1ère année',
+                    matieres: {
+                        'Premier semestre': [
+                            'Modèles informatiques',
+                            'Statistique',
+                            'Mathématiques I',
+                            'Comptabilité financière (BSc)',
+                            'Economie I',
+                            "Introduction au management et à l'éthique des affaires"
+                        ],
+                        'Deuxième semestre': [
+                            'Introduction à la programmation',
+                            'Comportement organisationnel',
+                            'Régression et analyse causale',
+                            "Droit et conformité de l'entreprise",
+                            'Mathématiques II',
+                            'Economie II'
+                        ]
+                    }
+                }
             }
         },
         droit: {
             nom: 'Droit',
             sous_titre: 'Faculté de droit',
-            // EXEMPLES à remplacer par les vrais cours
-            matieres: [
-                'Droit constitutionnel',
-                'Droit des obligations',
-                'Droit pénal',
-                'Droit civil'
-            ]
+            annees: {
+                '1': {
+                    nom: '1ère année',
+                    // EXEMPLES à remplacer par les vrais cours
+                    matieres: [
+                        'Droit constitutionnel',
+                        'Droit des obligations',
+                        'Droit pénal',
+                        'Droit civil'
+                    ]
+                }
+            }
+        },
+        bio: {
+            nom: 'Bio',
+            sous_titre: 'Faculté de biologie et de médecine',
+            annees: {
+                '1': {
+                    nom: '1ère année',
+                    // EXEMPLES à remplacer par les vrais cours
+                    matieres: [
+                        'Biologie cellulaire',
+                        'Chimie générale',
+                        'Génétique',
+                        'Physique'
+                    ]
+                }
+            }
         }
     },
 

@@ -38,6 +38,7 @@
         .mini-btn { width: 70px; height: 22px; border-radius: 8px; background: #25D366; }
 
         /* Liste des tuteurs d'une faculté */
+        .sans-apercu .fac-cta { margin-top: 12px; }
         .retour { display: inline-block; margin-bottom: 20px; color: var(--blue); font-weight: 600; text-decoration: none; }
         .tuteurs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 25px; }
         .tuteur-card { background: var(--white); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
@@ -56,14 +57,15 @@
         <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
     </div>
     <div class="hero">
-        <h1 id="hero-titre">Cours d'appui entre étudiants</h1>
-        <p id="hero-sous">Choisis ta faculté et trouve ton tuteur</p>
+        <h1 id="hero-titre">Tuteurs</h1>
+        <p id="hero-sous">Choisis ta faculté</p>
     </div>
 
     <main class="container">
+        <a href="#" id="retour" class="retour" hidden></a>
         <section id="vue-facs" class="facs-grid"></section>
+        <section id="vue-annees" class="facs-grid" hidden></section>
         <section id="vue-liste" hidden>
-            <a href="#" class="retour">← Toutes les facultés</a>
             <div id="tuteurs-container" class="tuteurs-grid"></div>
         </section>
     </main>
@@ -79,28 +81,30 @@
         const $ = id => document.getElementById(id);
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const aplat = m => Array.isArray(m) ? m : Object.values(m).flat();
-        const existe = cle => Object.prototype.hasOwnProperty.call(FAC, cle);
+        const existe = (obj, cle) => Object.prototype.hasOwnProperty.call(obj, cle);
 
-        let compteurs = null; // nombre de tuteurs par faculté (chargé une fois)
+        let compteurs = null; // compteurs[faculte][annee] = nombre de tuteurs
+        const nbFac = cle => compteurs ? Object.values(compteurs[cle] || {}).reduce((s, n) => s + n, 0) : null;
+        const nbAnnee = (cle, a) => compteurs ? ((compteurs[cle] || {})[a] || 0) : null;
+        const badge = n => n === null ? '' : `<span class="fac-count">${n ? n + ' tuteur' + (n > 1 ? 's' : '') : 'Bientôt des tuteurs'}</span>`;
 
         function rendreAccueil() {
             const prix = (CONFIG.PRIX_FIXE || 30) + ' CHF/h';
             $('vue-facs').innerHTML = Object.entries(FAC).map(([cle, f]) => {
-                const mini = aplat(f.matieres).slice(0, 2).map(m => `
+                const premiere = Object.values(f.annees)[0];
+                const mini = aplat(premiere.matieres).slice(0, 2).map(m => `
                     <div class="mini">
                         <span class="tag-matiere">${esc(m)}</span>
                         <div class="bar" style="width:55%"></div>
                         <div class="bar" style="width:35%"></div>
                         <div class="mini-foot"><strong>${esc(prix)}</strong><span class="mini-btn"></span></div>
                     </div>`).join('');
-                const n = compteurs ? (compteurs[cle] || 0) : null;
-                const badge = n === null ? '' : `<span class="fac-count">${n ? n + ' tuteur' + (n > 1 ? 's' : '') : 'Bientôt des tuteurs'}</span>`;
                 return `
                     <a class="fac-card" href="#${esc(cle)}">
                         <div class="fac-head">
                             <h2 class="fac-nom">${esc(f.nom)}</h2>
                             <p class="fac-sous">${esc(f.sous_titre || '')}</p>
-                            ${badge}
+                            ${badge(nbFac(cle))}
                         </div>
                         <div class="fac-preview" aria-hidden="true">${mini}</div>
                         <div class="fac-cta">Voir les tuteurs ${esc(f.nom)} →</div>
@@ -108,28 +112,36 @@
             }).join('');
         }
 
-        async function chargerCompteurs() {
-            const { data } = await db.from('tuteurs').select('faculte').eq('status', 'valide');
-            compteurs = {};
-            (data || []).forEach(t => { compteurs[t.faculte] = (compteurs[t.faculte] || 0) + 1; });
-            rendreAccueil();
+        function rendreAnnees(cle) {
+            const f = FAC[cle];
+            $('vue-annees').innerHTML = Object.entries(f.annees).map(([a, an]) => `
+                <a class="fac-card sans-apercu" href="#${esc(cle)}/${esc(a)}">
+                    <div class="fac-head">
+                        <h2 class="fac-nom">${esc(an.nom)}</h2>
+                        <p class="fac-sous">${esc(f.nom)}</p>
+                        ${badge(nbAnnee(cle, a))}
+                    </div>
+                    <div class="fac-cta">Voir les tuteurs →</div>
+                </a>`).join('');
         }
 
-        async function afficherListe(cle) {
-            const f = FAC[cle];
-            const container = $('tuteurs-container');
-            $('vue-facs').hidden = true;
-            $('vue-liste').hidden = false;
-            $('hero-titre').textContent = 'Tuteurs ' + f.nom;
-            $('hero-sous').textContent = f.sous_titre || '';
-            $('btn-ins').href = 'inscription.html?fac=' + encodeURIComponent(cle);
-            container.innerHTML = '<p class="msg">Chargement des tuteurs...</p>';
+        async function chargerCompteurs() {
+            const { data } = await db.from('tuteurs').select('faculte, annee').eq('status', 'valide');
+            compteurs = {};
+            (data || []).forEach(t => {
+                compteurs[t.faculte] = compteurs[t.faculte] || {};
+                compteurs[t.faculte][t.annee] = (compteurs[t.faculte][t.annee] || 0) + 1;
+            });
+            route(false);
+        }
 
+        async function afficherListe(cle, a) {
+            const container = $('tuteurs-container');
+            container.innerHTML = '<p class="msg">Chargement des tuteurs...</p>';
             const { data, error } = await db
                 .from('tuteurs')
                 .select('id, prenom, nom, matieres, prix, lieu, whatsapp')
-                .eq('status', 'valide')
-                .eq('faculte', cle)
+                .eq('status', 'valide').eq('faculte', cle).eq('annee', a)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -163,23 +175,40 @@
             }).join('');
         }
 
-        function afficherAccueil() {
-            $('vue-liste').hidden = true;
-            $('vue-facs').hidden = false;
-            $('hero-titre').textContent = 'Cours d\'appui entre étudiants';
-            $('hero-sous').textContent = 'Choisis ta faculté et trouve ton tuteur';
-            $('btn-ins').href = 'inscription.html';
+        function montrer(vue, titre, sous, retourHref, retourTexte, insHref) {
+            ['vue-facs', 'vue-annees', 'vue-liste'].forEach(v => { $(v).hidden = v !== vue; });
+            $('hero-titre').textContent = titre;
+            $('hero-sous').textContent = sous;
+            $('btn-ins').href = insHref;
+            $('retour').hidden = !retourHref;
+            if (retourHref) { $('retour').href = retourHref; $('retour').textContent = retourTexte; }
         }
 
-        function route() {
-            const cle = location.hash.slice(1);
-            existe(cle) ? afficherListe(cle) : afficherAccueil();
-            window.scrollTo(0, 0);
+        function route(remonter = true) {
+            const [cle, a] = location.hash.slice(1).split('/');
+            const f = existe(FAC, cle) ? FAC[cle] : null;
+            const annees = f ? Object.keys(f.annees) : [];
+            // Une seule année : on va directement aux tuteurs
+            const annee = f ? (a && existe(f.annees, a) ? a : (annees.length === 1 ? annees[0] : null)) : null;
+            if (f && annee) {
+                const unique = annees.length === 1;
+                montrer('vue-liste', 'Tuteurs ' + f.nom, unique ? (f.sous_titre || '') : f.annees[annee].nom,
+                    unique ? '#' : '#' + cle, unique ? '← Toutes les facultés' : '← ' + f.nom,
+                    'inscription.html?fac=' + encodeURIComponent(cle) + '&annee=' + encodeURIComponent(annee));
+                if (remonter) afficherListe(cle, annee);
+            } else if (f) {
+                rendreAnnees(cle);
+                montrer('vue-annees', 'Tuteurs ' + f.nom, 'Choisis ton année', '#', '← Toutes les facultés',
+                    'inscription.html?fac=' + encodeURIComponent(cle));
+            } else {
+                rendreAccueil();
+                montrer('vue-facs', 'Tuteurs', 'Choisis ta faculté', null, '', 'inscription.html');
+            }
+            if (remonter) window.scrollTo(0, 0);
         }
 
-        window.addEventListener('hashchange', route);
-        rendreAccueil();
-        route();
+        window.addEventListener('hashchange', () => route(true));
+        route(true);
         chargerCompteurs();
     </script>
 </body>
