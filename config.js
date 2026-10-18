@@ -47,26 +47,31 @@ const CONFIG = {
                     nom: '1ère année',
                     // EXEMPLES à remplacer par les vrais cours
                     matieres: [
+                        'Introduction au droit'
                         'Droit constitutionnel',
-                        'Droit des obligations',
+                        'Droit des personnes',
                         'Droit pénal',
-                        'Droit civil'
+                        'Droit romain',
+                        'Histoire du droit'
                     ]
                 }
             }
         },
         bio: {
-            nom: 'Bio',
-            sous_titre: 'Faculté de biologie et de médecine',
+            nom: 'SV',
+            sous_titre: 'Faculté des sciences de la vie',
             annees: {
                 '1': {
                     nom: '1ère année',
                     // EXEMPLES à remplacer par les vrais cours
                     matieres: [
-                        'Biologie cellulaire',
+                        'Analyse',
+                        'Algèbre linéaire',
+                        'Physique générale',
                         'Chimie générale',
-                        'Génétique',
-                        'Physique'
+                        'Chimie organique',
+                        'Biologie générale',
+                        'Programmation'
                     ]
                 }
             }
