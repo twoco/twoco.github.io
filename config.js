@@ -78,7 +78,7 @@ const CONFIG = {
         }
     },
 
-    // Lieux proposés dans le formulaire
+    // Lieux proposés dans le formulairee
     LIEUX: [
         'Campus UNIL (Internef/Amphimax)',
         'Bibliothèque BU',
