@@ -7,26 +7,42 @@ const CONFIG = {
     SUPABASE_URL: 'https://wjkhkxtdlrphouwsnicg.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI',
 
-    // Matières proposées dans le formulaire, regroupées par semestre.
-    // Pour ajouter un cours : ajoute une ligne dans le bon semestre (avec une virgule à la fin).
-    // Si le nom contient une apostrophe, entoure-le de guillemets "comme ça".
-    MATIERES: {
-        'Premier semestre': [
-            'Modèles informatiques',
-            'Statistique',
-            'Mathématiques I',
-            'Comptabilité financière (BSc)',
-            'Economie I',
-            "Introduction au management et à l'éthique des affaires"
-        ],
-        'Deuxième semestre': [
-            'Introduction à la programmation',
-            'Comportement organisationnel',
-            'Régression et analyse causale',
-            "Droit et conformité de l'entreprise",
-            'Mathématiques II',
-            'Economie II'
-        ]
+    // Facultés du site. Chaque faculté a ses matières (liste simple, ou groupes par semestre).
+    // Pour ajouter une faculté : copie un bloc, change la clé (ex: lettres) et le contenu.
+    FACULTES: {
+        hec: {
+            nom: 'HEC',
+            sous_titre: 'Hautes études commerciales',
+            matieres: {
+                'Premier semestre': [
+                    'Modèles informatiques',
+                    'Statistique',
+                    'Mathématiques I',
+                    'Comptabilité financière (BSc)',
+                    'Economie I',
+                    "Introduction au management et à l'éthique des affaires"
+                ],
+                'Deuxième semestre': [
+                    'Introduction à la programmation',
+                    'Comportement organisationnel',
+                    'Régression et analyse causale',
+                    "Droit et conformité de l'entreprise",
+                    'Mathématiques II',
+                    'Economie II'
+                ]
+            }
+        },
+        droit: {
+            nom: 'Droit',
+            sous_titre: 'Faculté de droit',
+            // EXEMPLES à remplacer par les vrais cours
+            matieres: [
+                'Droit constitutionnel',
+                'Droit des obligations',
+                'Droit pénal',
+                'Droit civil'
+            ]
+        }
     },
 
     // Lieux proposés dans le formulaire

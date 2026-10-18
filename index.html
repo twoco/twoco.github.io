@@ -3,23 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TWOCO - Tuteurs HEC</title>
+    <title>TWOCO - Cours d'appui entre étudiants</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <script src="config.js"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
+        [hidden] { display: none !important; }
         .navbar { background-color: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .brand-title { font-size: 1.8rem; font-weight: 800; color: white; text-decoration: none; }
         .brand-title span { color: var(--cyan); }
         .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
-        .hero { text-align: center; padding: 60px 20px; background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%); color: white; }
+        .hero { text-align: center; padding: 50px 20px 60px; background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%); color: white; }
+        .hero h1 { margin: 0 0 8px; }
+        .hero p { margin: 0; color: #cbd5e1; }
         .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+        /* Accueil : un gros bouton par faculté, avec aperçu grisé */
+        .facs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 25px; }
+        .fac-card { display: flex; flex-direction: column; background: var(--white); border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; text-decoration: none; color: inherit; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: transform .15s, box-shadow .15s; }
+        .fac-card:hover, .fac-card:focus-visible { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(37,99,235,0.15); outline: none; }
+        .fac-head { padding: 24px 24px 8px; }
+        .fac-nom { font-size: 1.8rem; font-weight: 800; margin: 0; }
+        .fac-sous { color: #64748b; margin: 4px 0 0; font-size: 0.9rem; }
+        .fac-count { display: inline-block; margin-top: 12px; background: #eff6ff; color: var(--blue); font-weight: 600; font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; }
+        .fac-preview { height: 190px; overflow: hidden; padding: 12px 24px 0; filter: grayscale(1); opacity: 0.55; transition: opacity .2s, filter .2s; -webkit-mask-image: linear-gradient(#000 35%, transparent); mask-image: linear-gradient(#000 35%, transparent); }
+        .fac-card:hover .fac-preview, .fac-card:focus-visible .fac-preview { opacity: 0.9; filter: grayscale(0.2); }
+        .fac-cta { position: relative; margin: -22px 24px 24px; background: var(--blue); color: white; text-align: center; padding: 14px; border-radius: 12px; font-weight: 700; }
+        .mini { background: var(--white); border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+        .mini .tag-matiere { font-size: 0.75rem; padding: 4px 10px; margin: 0 0 8px; }
+        .bar { height: 10px; border-radius: 6px; background: #cbd5e1; margin: 6px 0; }
+        .mini-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .mini-btn { width: 70px; height: 22px; border-radius: 8px; background: #25D366; }
+
+        /* Liste des tuteurs d'une faculté */
+        .retour { display: inline-block; margin-bottom: 20px; color: var(--blue); font-weight: 600; text-decoration: none; }
         .tuteurs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 25px; }
         .tuteur-card { background: var(--white); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
         .tuteur-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
-        .tag-matiere { margin: 0 6px 8px 0; background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; }
+        .tag-matiere { background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; margin: 0 6px 8px 0; }
         .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
         .prix { font-size: 1.5rem; font-weight: 800; }
         .btn-whatsapp { background-color: #25D366; color: white; text-decoration: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
@@ -29,15 +52,22 @@
 </head>
 <body>
     <div class="navbar">
-        <a href="index.html" class="brand-title">TWO<span>CO</span></a>
-        <a href="inscription.html" class="btn-inscription">Devenir tuteur</a>
+        <a href="#" class="brand-title">TWO<span>CO</span></a>
+        <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
     </div>
-    <div class="hero"><h1>Tuteurs 2ème HEC</h1></div>
-    <div class="container">
-        <div id="tuteurs-container" class="tuteurs-grid">
-            <p class="msg">Chargement des tuteurs...</p>
-        </div>
+    <div class="hero">
+        <h1 id="hero-titre">Cours d'appui entre étudiants</h1>
+        <p id="hero-sous">Choisis ta faculté et trouve ton tuteur</p>
     </div>
+
+    <main class="container">
+        <section id="vue-facs" class="facs-grid"></section>
+        <section id="vue-liste" hidden>
+            <a href="#" class="retour">← Toutes les facultés</a>
+            <div id="tuteurs-container" class="tuteurs-grid"></div>
+        </section>
+    </main>
+
     <footer>
         <p>&copy; 2026 Twoco HEC - Tous droits réservés</p>
         <p>Fondateur : Nathan Coquoz / Co-fondateur : Quentin Courtine</p>
@@ -45,17 +75,61 @@
 
     <script>
         const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        
-        // Neutralise tout HTML dans les textes saisis par les tuteurs
+        const FAC = CONFIG.FACULTES;
+        const $ = id => document.getElementById(id);
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const aplat = m => Array.isArray(m) ? m : Object.values(m).flat();
+        const existe = cle => Object.prototype.hasOwnProperty.call(FAC, cle);
 
-        async function charger() {
-            const container = document.getElementById('tuteurs-container');
+        let compteurs = null; // nombre de tuteurs par faculté (chargé une fois)
+
+        function rendreAccueil() {
+            const prix = (CONFIG.PRIX_FIXE || 30) + ' CHF/h';
+            $('vue-facs').innerHTML = Object.entries(FAC).map(([cle, f]) => {
+                const mini = aplat(f.matieres).slice(0, 2).map(m => `
+                    <div class="mini">
+                        <span class="tag-matiere">${esc(m)}</span>
+                        <div class="bar" style="width:55%"></div>
+                        <div class="bar" style="width:35%"></div>
+                        <div class="mini-foot"><strong>${esc(prix)}</strong><span class="mini-btn"></span></div>
+                    </div>`).join('');
+                const n = compteurs ? (compteurs[cle] || 0) : null;
+                const badge = n === null ? '' : `<span class="fac-count">${n ? n + ' tuteur' + (n > 1 ? 's' : '') : 'Bientôt des tuteurs'}</span>`;
+                return `
+                    <a class="fac-card" href="#${esc(cle)}">
+                        <div class="fac-head">
+                            <h2 class="fac-nom">${esc(f.nom)}</h2>
+                            <p class="fac-sous">${esc(f.sous_titre || '')}</p>
+                            ${badge}
+                        </div>
+                        <div class="fac-preview" aria-hidden="true">${mini}</div>
+                        <div class="fac-cta">Voir les tuteurs ${esc(f.nom)} →</div>
+                    </a>`;
+            }).join('');
+        }
+
+        async function chargerCompteurs() {
+            const { data } = await db.from('tuteurs').select('faculte').eq('status', 'valide');
+            compteurs = {};
+            (data || []).forEach(t => { compteurs[t.faculte] = (compteurs[t.faculte] || 0) + 1; });
+            rendreAccueil();
+        }
+
+        async function afficherListe(cle) {
+            const f = FAC[cle];
+            const container = $('tuteurs-container');
+            $('vue-facs').hidden = true;
+            $('vue-liste').hidden = false;
+            $('hero-titre').textContent = 'Tuteurs ' + f.nom;
+            $('hero-sous').textContent = f.sous_titre || '';
+            $('btn-ins').href = 'inscription.html?fac=' + encodeURIComponent(cle);
+            container.innerHTML = '<p class="msg">Chargement des tuteurs...</p>';
 
             const { data, error } = await db
                 .from('tuteurs')
                 .select('id, prenom, nom, matieres, prix, lieu, whatsapp')
                 .eq('status', 'valide')
+                .eq('faculte', cle)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -63,27 +137,23 @@
                 container.innerHTML = '<p class="msg">Impossible de charger les tuteurs pour le moment. Réessaie dans quelques minutes.</p>';
                 return;
             }
-
             if (!data || data.length === 0) {
                 container.innerHTML = '<p class="msg">Aucun tuteur pour le moment. Sois le premier à t\'inscrire !</p>';
                 return;
             }
-
             container.innerHTML = data.map(t => {
                 const tags = String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean)
                     .map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
                 const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');
                 const tel = String(t.whatsapp || '').replace(/\D/g, '');
                 const message = encodeURIComponent('Bonjour, je te contacte depuis Twoco pour des cours d\'appui.');
-                const bouton = tel
-                    ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" target="_blank" rel="noopener">WhatsApp</a>`
-                    : '';
+                const bouton = tel ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" target="_blank" rel="noopener">WhatsApp</a>` : '';
                 return `
                     <div class="tuteur-card">
                         <div class="tuteur-info">
                             <div style="margin-bottom:15px">${tags}</div>
                             <h3>${nom}</h3>
-                            <p>📍 ${esc(t.lieu || 'Campus HEC')}<br>📅 Dispo à convenir</p>
+                            <p>📍 ${esc(t.lieu || '')}<br>📅 Dispo à convenir</p>
                         </div>
                         <div class="card-footer">
                             <div class="prix">${esc(t.prix || '')}</div>
@@ -93,7 +163,24 @@
             }).join('');
         }
 
-        charger();
+        function afficherAccueil() {
+            $('vue-liste').hidden = true;
+            $('vue-facs').hidden = false;
+            $('hero-titre').textContent = 'Cours d\'appui entre étudiants';
+            $('hero-sous').textContent = 'Choisis ta faculté et trouve ton tuteur';
+            $('btn-ins').href = 'inscription.html';
+        }
+
+        function route() {
+            const cle = location.hash.slice(1);
+            existe(cle) ? afficherListe(cle) : afficherAccueil();
+            window.scrollTo(0, 0);
+        }
+
+        window.addEventListener('hashchange', route);
+        rendreAccueil();
+        route();
+        chargerCompteurs();
     </script>
 </body>
 </html>
