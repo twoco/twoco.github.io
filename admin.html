@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin - TWOCO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <style>
+        :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
+        .navbar { background: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .brand-title { font-size: 1.5rem; font-weight: 800; color: white; }
+        .brand-title span { color: var(--cyan); }
+        .navbar button { width: auto; margin: 0; padding: 8px 14px; background: transparent; border: 1px solid #475569; color: white; }
+        .wrap { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .login { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .login h2 { margin-top: 0; }
+        input { width: 100%; padding: 12px; margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font: inherit; }
+        button { font: inherit; cursor: pointer; border: none; border-radius: 10px; padding: 12px 18px; font-weight: 700; }
+        .login button { width: 100%; margin-top: 16px; background: var(--blue); color: white; }
+        .err { color: #b91c1c; font-weight: 600; margin-top: 12px; min-height: 1em; }
+        h2.section { margin: 36px 0 14px; }
+        .tuteur-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 14px; display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .tuteur-card h3 { margin: 0 0 6px; }
+        .tuteur-card p { margin: 3px 0; font-size: 0.92rem; }
+        .actions { display: flex; gap: 8px; }
+        .btn-v { background: #dcfce7; color: #166534; }
+        .btn-n { background: #f1f5f9; color: #334155; }
+        .btn-d { background: #fee2e2; color: #991b1b; }
+        .vide { color: #64748b; }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+    <section id="login" class="login" hidden>
+        <h2>Connexion admin</h2>
+        <form id="login-form">
+            <input type="email" id="email" placeholder="Email" autocomplete="username" required>
+            <input type="password" id="password" placeholder="Mot de passe" autocomplete="current-password" required>
+            <button type="submit">Se connecter</button>
+            <p class="err" id="login-err" role="alert"></p>
+        </form>
+    </section>
+
+    <div id="panel" hidden>
+        <div class="navbar">
+            <div class="brand-title">TWO<span>CO</span> admin</div>
+            <button id="logout" type="button">Se déconnecter</button>
+        </div>
+        <div class="wrap">
+            <h2 class="section">En attente de validation</h2>
+            <div id="liste-attente"></div>
+            <h2 class="section">Profils publiés</h2>
+            <div id="liste-valides"></div>
+        </div>
+    </div>
+
+    <script>
+        const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        function montrerLogin() { $('panel').hidden = true; $('login').hidden = false; }
+        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); }
+
+        $('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            $('login-err').textContent = '';
+            const { error } = await db.auth.signInWithPassword({
+                email: $('email').value.trim(),
+                password: $('password').value
+            });
+            if (error) { $('login-err').textContent = 'Email ou mot de passe incorrect.'; return; }
+            $('password').value = '';
+            montrerPanel();
+        });
+
+        $('logout').addEventListener('click', async () => {
+            await db.auth.signOut();
+            montrerLogin();
+        });
+
+        function carte(t, actions) {
+            return `
+                <div class="tuteur-card">
+                    <div>
+                        <h3>${esc(t.prenom)} ${esc(t.nom)}</h3>
+                        <p><strong>Faculté :</strong> ${esc(t.faculte)}</p>
+                        <p><strong>Matières :</strong> ${esc(t.matieres)}</p>
+                        <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
+                        <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
+                    </div>
+                    <div class="actions">${actions.map(a =>
+                        `<button type="button" class="${a.cls}" data-action="${a.action}" data-id="${esc(t.id)}">${a.label}</button>`
+                    ).join('')}</div>
+                </div>`;
+        }
+
+        async function charger() {
+            const { data, error } = await db.from('tuteurs').select('*').order('created_at', { ascending: false });
+            if (error) {
+                console.error(error);
+                $('liste-attente').innerHTML = '<p class="vide">Impossible de charger les données. Vérifie ta connexion et les règles Supabase.</p>';
+                return;
+            }
+            const attente = data.filter(t => t.status === 'en_attente');
+            const valides = data.filter(t => t.status === 'valide');
+
+            $('liste-attente').innerHTML = attente.length
+                ? attente.map(t => carte(t, [
+                    { cls: 'btn-v', action: 'valider', label: 'Valider' },
+                    { cls: 'btn-d', action: 'supprimer', label: 'Refuser' }])).join('')
+                : '<p class="vide">Aucune candidature en attente.</p>';
+
+            $('liste-valides').innerHTML = valides.length
+                ? valides.map(t => carte(t, [
+                    { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
+                    { cls: 'btn-d', action: 'supprimer', label: 'Supprimer' }])).join('')
+                : '<p class="vide">Aucun profil publié.</p>';
+        }
+
+        // Un seul écouteur pour tous les boutons (pas de onclick dans le HTML généré)
+        $('panel').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const { action, id } = btn.dataset;
+            let resultat;
+
+            if (action === 'supprimer') {
+                if (!confirm('Supprimer définitivement ce profil ?')) return;
+                resultat = await db.from('tuteurs').delete().eq('id', id).select();
+            } else {
+                const statut = action === 'valider' ? 'valide' : 'en_attente';
+                resultat = await db.from('tuteurs').update({ status: statut }).eq('id', id).select();
+            }
+
+            // Supabase ne renvoie pas d'erreur quand une règle RLS bloque : on vérifie qu'une ligne a bien été touchée
+            if (resultat.error || !resultat.data || resultat.data.length === 0) {
+                alert('Action refusée. Vérifie que tu es connecté avec le bon compte admin.');
+                return;
+            }
+            charger();
+        });
+
+        (async () => {
+            const { data } = await db.auth.getSession();
+            data.session ? montrerPanel() : montrerLogin();
+        })();
+    </script>
+</body>
+</html>

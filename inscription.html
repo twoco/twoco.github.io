@@ -55,6 +55,11 @@
             </div>
 
             <fieldset>
+                <legend>Ta faculté</legend>
+                <div class="choix" id="fac-box"></div>
+            </fieldset>
+
+            <fieldset>
                 <legend>Matières que tu enseignes <span class="hint">(plusieurs choix possibles)</span></legend>
                 <div id="matieres-box"></div>
             </fieldset>
@@ -102,14 +107,32 @@
                 `<label class="chip"><input type="checkbox" name="${nom}" value="${esc(v)}"><span>${esc(v)}</span></label>`
             ).join('');
         }
-        // Matières groupées par semestre (accepte aussi une simple liste)
-        const groupes = Array.isArray(CONFIG.MATIERES) ? { '': CONFIG.MATIERES } : CONFIG.MATIERES;
-        $('matieres-box').innerHTML = Object.entries(groupes).map(([semestre, liste]) =>
-            (semestre ? `<p class="sem">${esc(semestre)}</p>` : '') +
-            `<div class="choix">${liste.map(v =>
-                `<label class="chip"><input type="checkbox" name="matiere" value="${esc(v)}"><span>${esc(v)}</span></label>`
-            ).join('')}</div>`
+        // Faculté d'abord, puis les matières de cette faculté
+        $('fac-box').innerHTML = Object.entries(CONFIG.FACULTES).map(([cle, f]) =>
+            `<label class="chip"><input type="radio" name="faculte" value="${esc(cle)}"><span>${esc(f.nom)}</span></label>`
         ).join('');
+
+        function afficherMatieres() {
+            const cle = (document.querySelector('input[name="faculte"]:checked') || {}).value;
+            const fac = cle && CONFIG.FACULTES[cle];
+            if (!fac) { $('matieres-box').innerHTML = '<p class="hint">Choisis d\'abord ta faculté.</p>'; return; }
+            const groupes = Array.isArray(fac.matieres) ? { '': fac.matieres } : fac.matieres;
+            $('matieres-box').innerHTML = Object.entries(groupes).map(([semestre, liste]) =>
+                (semestre ? `<p class="sem">${esc(semestre)}</p>` : '') +
+                `<div class="choix">${liste.map(v =>
+                    `<label class="chip"><input type="checkbox" name="matiere" value="${esc(v)}"><span>${esc(v)}</span></label>`
+                ).join('')}</div>`
+            ).join('');
+        }
+        $('fac-box').addEventListener('change', afficherMatieres);
+
+        // Pré-sélection via ?fac=droit, ou automatique s'il n'y a qu'une faculté
+        const cles = Object.keys(CONFIG.FACULTES);
+        const voulue = new URLSearchParams(location.search).get('fac');
+        const depart = cles.includes(voulue) ? voulue : (cles.length === 1 ? cles[0] : null);
+        if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
+        afficherMatieres();
+
         remplirChoix('lieux-box', CONFIG.LIEUX, 'lieu');
         if (CONFIG.PRIX_FIXE) {
             $('prix-libre').hidden = true;
@@ -142,12 +165,14 @@
 
             const prenom = $('prenom').value.trim();
             const nom = $('nom').value.trim();
+            const faculte = (document.querySelector('input[name="faculte"]:checked') || {}).value;
             const matieres = coches('matiere');
             const lieux = coches('lieu');
             const prixNum = CONFIG.PRIX_FIXE || Number($('prix').value);
             const whatsapp = normaliserTel($('whatsapp').value);
 
             if (!prenom || !nom) return montrerErreur('Indique ton prénom et ton nom.');
+            if (!faculte) return montrerErreur('Choisis ta faculté.');
             if (matieres.length === 0) return montrerErreur('Choisis au moins une matière.');
             if (lieux.length === 0) return montrerErreur('Choisis au moins un lieu.');
             if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
@@ -160,7 +185,7 @@
             btn.textContent = 'Envoi en cours...';
 
             const { error } = await db.from('tuteurs').insert([{
-                prenom, nom, whatsapp,
+                prenom, nom, whatsapp, faculte,
                 matieres: matieres.join(', '),
                 lieu: lieux.join(', '),
                 prix: prixNum + ' CHF/h',
