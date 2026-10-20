@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin - TWOCO</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <link href="fonts/inter.css" rel="stylesheet">
+    <script src="vendor/supabase.js"></script>
     <script src="config.js"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
@@ -103,19 +103,24 @@
                 </div>`;
         }
 
+        let fiches = [];
+
         async function charger() {
             const { data, error } = await db.from('tuteurs').select('*').order('created_at', { ascending: false });
+            fiches = data || [];
             if (error) {
                 console.error(error);
                 $('liste-attente').innerHTML = '<p class="vide">Impossible de charger les données. Vérifie ta connexion et les règles Supabase.</p>';
                 return;
             }
             const attente = data.filter(t => t.status === 'en_attente');
+            // Une candidature dont le numéro existe déjà = une modification de profil
+            const dejaPublie = t => data.some(v => v.id !== t.id && v.whatsapp === t.whatsapp && v.status === 'valide');
             const valides = data.filter(t => t.status === 'valide');
 
             $('liste-attente').innerHTML = attente.length
                 ? attente.map(t => carte(t, [
-                    { cls: 'btn-v', action: 'valider', label: 'Valider' },
+                    { cls: 'btn-v', action: 'valider', label: dejaPublie(t) ? 'Valider (remplace l\'ancien profil)' : 'Valider' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Refuser' }])).join('')
                 : '<p class="vide">Aucune candidature en attente.</p>';
 
@@ -145,6 +150,15 @@
             if (resultat.error || !resultat.data || resultat.data.length === 0) {
                 alert('Action refusée. Vérifie que tu es connecté avec le bon compte admin.');
                 return;
+            }
+
+            // Modification de profil : la nouvelle fiche validée remplace les anciennes du même numéro
+            if (action === 'valider') {
+                const tel = (fiches.find(t => String(t.id) === id) || {}).whatsapp;
+                if (tel) {
+                    const { error } = await db.from('tuteurs').delete().eq('whatsapp', tel).neq('id', id);
+                    if (error) alert('Profil validé, mais l\'ancien profil n\'a pas pu être supprimé : supprime-le à la main.');
+                }
             }
             charger();
         });
