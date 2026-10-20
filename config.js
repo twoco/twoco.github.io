@@ -91,9 +91,6 @@ const CONFIG = {
     // Les tuteurs doivent s'inscrire avec une adresse de ce domaine
     EMAIL_DOMAINE: '@unil.ch',
 
-    // Note minimum (attestée sur l'honneur) dans chaque matière enseignée
-    NOTE_MIN: 4.5,
-
     // Prix fixe (CHF par heure). Le tuteur ne peut pas le choisir.
     // Pour laisser les tuteurs choisir leur prix, mets : PRIX_FIXE: null
     PRIX_FIXE: 30,
