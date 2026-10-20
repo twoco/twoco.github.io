@@ -18,7 +18,7 @@
         label, legend { display: block; font-weight: 600; font-size: 0.9rem; margin-top: 18px; padding: 0; }
         fieldset { border: none; padding: 0; margin: 0; }
         .hint { font-weight: 400; color: #64748b; font-size: 0.8rem; }
-        input[type=text], input[type=tel], input[type=number] { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font: inherit; }
+        input[type=text], input[type=tel], input[type=number], input[type=email] { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font: inherit; }
         input:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
         .row { display: flex; gap: 12px; }
         .row > div { flex: 1; }
@@ -38,6 +38,9 @@
         [hidden] { display: none !important; }
         .prix-fixe { margin-top: 18px; padding: 12px 14px; background: #f1f5f9; border-radius: 10px; font-weight: 600; }
         .hp { position: absolute; left: -9999px; }
+        .note-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 0.9rem; }
+        .note-ligne input { width: 90px; margin-top: 0; }
+        .consent a { color: var(--blue); }
         footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
         footer a { color: #cbd5e1; }
         a.retour { display: inline-block; margin-top: 16px; color: var(--blue); font-weight: 600; }
@@ -71,6 +74,11 @@
                 <div id="matieres-box"></div>
             </fieldset>
 
+            <fieldset id="notes-fs" hidden>
+                <legend>Ta note dans chaque matière <span class="hint">(jamais affichée sur le site)</span></legend>
+                <div id="notes-box"></div>
+            </fieldset>
+
             <fieldset>
                 <legend>Lieux possibles <span class="hint">(plusieurs choix possibles)</span></legend>
                 <div class="choix" id="lieux-box"></div>
@@ -85,9 +93,22 @@
             <label for="whatsapp">Numéro WhatsApp <span class="hint">(ex : 079 123 45 67)</span></label>
             <input type="tel" id="whatsapp" maxlength="25" required>
 
+            <label for="email">E-mail universitaire <span class="hint">(ex : prenom.nom@unil.ch, jamais affiché sur le site)</span></label>
+            <input type="email" id="email" maxlength="100" autocomplete="email" required>
+
             <label class="consent">
                 <input type="checkbox" id="consent">
                 <span>J'accepte que mon prénom, mon nom, mon numéro WhatsApp et mes informations de cours soient affichés publiquement sur ce site. Je peux demander leur retrait à tout moment.</span>
+            </label>
+
+            <label class="consent">
+                <input type="checkbox" id="honneur">
+                <span id="honneur-texte"></span>
+            </label>
+
+            <label class="consent">
+                <input type="checkbox" id="cgu">
+                <span>J'ai lu et j'accepte les <a href="legal.html#cgu" target="_blank">Conditions Générales d'Utilisation</a> et la <a href="legal.html#confidentialite" target="_blank">Politique de confidentialité</a>.</span>
             </label>
 
             <input type="text" id="site" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -119,6 +140,7 @@
             ).join('');
         }
         const valeur = nom => (document.querySelector(`input[name="${nom}"]:checked`) || {}).value;
+        const coches = nom => [...document.querySelectorAll(`input[name="${nom}"]:checked`)].map(i => i.value);
 
         // Faculté -> année -> matières
         $('fac-box').innerHTML = Object.entries(CONFIG.FACULTES).map(([cle, f]) =>
@@ -154,6 +176,22 @@
         $('fac-box').addEventListener('change', afficherAnnees);
         $('annee-box').addEventListener('change', afficherMatieres);
 
+        // Une ligne "note" par matière cochée
+        function afficherNotes() {
+            const avant = {};
+            document.querySelectorAll('#notes-box input').forEach(i => { avant[i.dataset.matiere] = i.value; });
+            const matieres = coches('matiere');
+            $('notes-fs').hidden = matieres.length === 0;
+            $('notes-box').innerHTML = matieres.map((m, i) =>
+                `<div class="note-ligne"><label for="note-${i}" style="margin:0;font-weight:400">${esc(m)}</label>` +
+                `<input type="number" id="note-${i}" data-matiere="${esc(m)}" min="1" max="6" step="0.01" placeholder="ex : 5" value="${esc(avant[m] || '')}"></div>`
+            ).join('');
+        }
+        $('matieres-box').addEventListener('change', afficherNotes);
+        $('fac-box').addEventListener('change', afficherNotes);
+        $('annee-box').addEventListener('change', afficherNotes);
+        $('honneur-texte').textContent = `J'atteste sur l'honneur avoir validé chaque matière choisie avec une note minimum de ${CONFIG.NOTE_MIN}. Je comprends que tout mensonge entraînera le bannissement définitif de mon profil suite aux retours des élèves.`;
+
         // Pré-sélection via ?fac=droit&annee=1, ou automatique s'il n'y a qu'une faculté
         const cles = Object.keys(CONFIG.FACULTES);
         const voulueFac = new URLSearchParams(location.search).get('fac');
@@ -170,8 +208,6 @@
             $('prix').min = CONFIG.PRIX_MIN;
             $('prix').max = CONFIG.PRIX_MAX;
         }
-
-        const coches = nom => [...document.querySelectorAll(`input[name="${nom}"]:checked`)].map(i => i.value);
 
         function normaliserTel(brut) {
             let n = brut.replace(/\D/g, '');
@@ -199,6 +235,9 @@
             const lieux = coches('lieu');
             const prixNum = CONFIG.PRIX_FIXE || Number($('prix').value);
             const whatsapp = normaliserTel($('whatsapp').value);
+            const email = $('email').value.trim().toLowerCase();
+            const notes = {};
+            document.querySelectorAll('#notes-box input').forEach(i => { notes[i.dataset.matiere] = i.value === '' ? NaN : Number(i.value); });
 
             if (!prenom || !nom) return montrerErreur('Indique ton prénom et ton nom.');
             if (!faculte) return montrerErreur('Choisis ta faculté.');
@@ -208,7 +247,15 @@
             if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
                 return montrerErreur(`Indique un prix entre ${CONFIG.PRIX_MIN} et ${CONFIG.PRIX_MAX} CHF par heure.`);
             if (!whatsapp) return montrerErreur('Numéro WhatsApp invalide. Exemple : 079 123 45 67.');
+            if (Object.values(notes).some(n => !(n >= 1 && n <= 6)))
+                return montrerErreur('Indique ta note (entre 1 et 6) pour chaque matière choisie.');
+            if (Object.values(notes).some(n => n < CONFIG.NOTE_MIN))
+                return montrerErreur(`Il faut une note d'au moins ${CONFIG.NOTE_MIN} dans chaque matière que tu enseignes.`);
+            if (!email.endsWith(CONFIG.EMAIL_DOMAINE) || !/^[^\s@]+@[^\s@]+$/.test(email))
+                return montrerErreur(`Indique ton adresse e-mail universitaire (qui se termine par ${CONFIG.EMAIL_DOMAINE}).`);
             if (!$('consent').checked) return montrerErreur('Tu dois accepter l\'affichage public de tes informations.');
+            if (!$('honneur').checked) return montrerErreur('Tu dois cocher l\'attestation sur l\'honneur.');
+            if (!$('cgu').checked) return montrerErreur('Tu dois accepter les Conditions Générales d\'Utilisation et la Politique de confidentialité.');
 
             const btn = $('envoyer');
             btn.disabled = true;
@@ -219,6 +266,9 @@
                 matieres: matieres.join(', '),
                 lieu: lieux.join(', '),
                 prix: prixNum + ' CHF/h',
+                email, notes,
+                cgu_acceptees: true,
+                cgu_version: CONFIG.CGU_VERSION,
                 status: 'en_attente'
             }]);
 
