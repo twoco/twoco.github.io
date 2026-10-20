@@ -38,8 +38,6 @@
         [hidden] { display: none !important; }
         .prix-fixe { margin-top: 18px; padding: 12px 14px; background: #f1f5f9; border-radius: 10px; font-weight: 600; }
         .hp { position: absolute; left: -9999px; }
-        .note-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 0.9rem; }
-        .note-ligne input { width: 90px; margin-top: 0; }
         .consent a { color: var(--blue); }
         footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
         footer a { color: #cbd5e1; }
@@ -74,11 +72,6 @@
                 <div id="matieres-box"></div>
             </fieldset>
 
-            <fieldset id="notes-fs" hidden>
-                <legend>Ta note dans chaque matière <span class="hint">(jamais affichée sur le site)</span></legend>
-                <div id="notes-box"></div>
-            </fieldset>
-
             <fieldset>
                 <legend>Lieux possibles <span class="hint">(plusieurs choix possibles)</span></legend>
                 <div class="choix" id="lieux-box"></div>
@@ -103,7 +96,7 @@
 
             <label class="consent">
                 <input type="checkbox" id="honneur">
-                <span id="honneur-texte"></span>
+                <span>J'atteste sur l'honneur être au minimum en 2e année d'études à l'UNIL, avoir réussi les matières que je propose et être en mesure de donner des cours d'appui à des étudiants de 1re année. Je comprends que toute fausse déclaration peut entraîner la suppression de mon profil.</span>
             </label>
 
             <label class="consent">
@@ -176,21 +169,6 @@
         $('fac-box').addEventListener('change', afficherAnnees);
         $('annee-box').addEventListener('change', afficherMatieres);
 
-        // Une ligne "note" par matière cochée
-        function afficherNotes() {
-            const avant = {};
-            document.querySelectorAll('#notes-box input').forEach(i => { avant[i.dataset.matiere] = i.value; });
-            const matieres = coches('matiere');
-            $('notes-fs').hidden = matieres.length === 0;
-            $('notes-box').innerHTML = matieres.map((m, i) =>
-                `<div class="note-ligne"><label for="note-${i}" style="margin:0;font-weight:400">${esc(m)}</label>` +
-                `<input type="number" id="note-${i}" data-matiere="${esc(m)}" min="1" max="6" step="0.01" placeholder="ex : 5" value="${esc(avant[m] || '')}"></div>`
-            ).join('');
-        }
-        $('matieres-box').addEventListener('change', afficherNotes);
-        $('fac-box').addEventListener('change', afficherNotes);
-        $('annee-box').addEventListener('change', afficherNotes);
-        $('honneur-texte').textContent = `J'atteste sur l'honneur avoir validé chaque matière choisie avec une note minimum de ${CONFIG.NOTE_MIN}. Je comprends que tout mensonge entraînera le bannissement définitif de mon profil suite aux retours des élèves.`;
 
         // Pré-sélection via ?fac=droit&annee=1, ou automatique s'il n'y a qu'une faculté
         const cles = Object.keys(CONFIG.FACULTES);
@@ -236,8 +214,6 @@
             const prixNum = CONFIG.PRIX_FIXE || Number($('prix').value);
             const whatsapp = normaliserTel($('whatsapp').value);
             const email = $('email').value.trim().toLowerCase();
-            const notes = {};
-            document.querySelectorAll('#notes-box input').forEach(i => { notes[i.dataset.matiere] = i.value === '' ? NaN : Number(i.value); });
 
             if (!prenom || !nom) return montrerErreur('Indique ton prénom et ton nom.');
             if (!faculte) return montrerErreur('Choisis ta faculté.');
@@ -247,10 +223,6 @@
             if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
                 return montrerErreur(`Indique un prix entre ${CONFIG.PRIX_MIN} et ${CONFIG.PRIX_MAX} CHF par heure.`);
             if (!whatsapp) return montrerErreur('Numéro WhatsApp invalide. Exemple : 079 123 45 67.');
-            if (Object.values(notes).some(n => !(n >= 1 && n <= 6)))
-                return montrerErreur('Indique ta note (entre 1 et 6) pour chaque matière choisie.');
-            if (Object.values(notes).some(n => n < CONFIG.NOTE_MIN))
-                return montrerErreur(`Il faut une note d'au moins ${CONFIG.NOTE_MIN} dans chaque matière que tu enseignes.`);
             if (!email.endsWith(CONFIG.EMAIL_DOMAINE) || !/^[^\s@]+@[^\s@]+$/.test(email))
                 return montrerErreur(`Indique ton adresse e-mail universitaire (qui se termine par ${CONFIG.EMAIL_DOMAINE}).`);
             if (!$('consent').checked) return montrerErreur('Tu dois accepter l\'affichage public de tes informations.');
@@ -266,7 +238,7 @@
                 matieres: matieres.join(', '),
                 lieu: lieux.join(', '),
                 prix: prixNum + ' CHF/h',
-                email, notes,
+                email,
                 cgu_acceptees: true,
                 cgu_version: CONFIG.CGU_VERSION,
                 status: 'en_attente'
