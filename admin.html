@@ -93,6 +93,9 @@
                         <p><strong>Matières :</strong> ${esc(t.matieres)}</p>
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
+                        ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
+                        ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
+                        ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées le ${esc(new Date(t.cgu_date).toLocaleString('fr-CH'))}</p>` : ''}
                     </div>
                     <div class="actions">${actions.map(a =>
                         `<button type="button" class="${a.cls}" data-action="${a.action}" data-id="${esc(t.id)}">${a.label}</button>`
