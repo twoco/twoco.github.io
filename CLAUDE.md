@@ -2,6 +2,10 @@
 
 Ce dépôt héberge le site twoco.github.io. Le propriétaire valide toutes les modifications lui-même.
 
+## Objectifs et notes du projet
+
+Les objectifs et les décisions du projet sont dans le dépôt privé `twoco/notes` (fichiers `OBJECTIFS.md` et `NOTES.md`). Au début de chaque session, rattacher ce dépôt et lire ces deux fichiers avant de travailler sur le site.
+
 ## Règles obligatoires
 
 - Toujours travailler sur une branche à part (préfixe `claude/`), jamais directement sur `main`.
