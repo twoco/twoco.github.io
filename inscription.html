@@ -38,6 +38,8 @@
         [hidden] { display: none !important; }
         .prix-fixe { margin-top: 18px; padding: 12px 14px; background: #f1f5f9; border-radius: 10px; font-weight: 600; }
         .hp { position: absolute; left: -9999px; }
+        footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
+        footer a { color: #cbd5e1; }
         a.retour { display: inline-block; margin-top: 16px; color: var(--blue); font-weight: 600; }
     </style>
 </head>
@@ -100,6 +102,10 @@
             <a href="index.html" class="retour">Retour à l'accueil</a>
         </div>
     </div>
+
+    <footer>
+        <p><a href="legal.html#cgu">CGU</a> · <a href="legal.html#confidentialite">Confidentialité</a> · <a href="legal.html#mentions">Mentions légales</a></p>
+    </footer>
 
     <script>
         const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
