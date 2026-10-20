@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Devenir tuteur - TWOCO</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <link href="fonts/inter.css" rel="stylesheet">
+    <script src="vendor/supabase.js"></script>
     <script src="config.js"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
@@ -97,6 +97,11 @@
             <label class="consent">
                 <input type="checkbox" id="honneur">
                 <span>J'atteste sur l'honneur être au minimum en 2e année d'études à l'UNIL, avoir réussi les matières que je propose et être en mesure de donner des cours d'appui à des étudiants de 1re année. Je comprends que toute fausse déclaration peut entraîner la suppression de mon profil.</span>
+            </label>
+
+            <label class="consent">
+                <input type="checkbox" id="contribution">
+                <span>J'accepte que Twoco puisse me demander 5 CHF (par TWINT) après mon premier cours avec chaque nouvel élève venu du site. Ce versement me donne le badge « Vérifié ».</span>
             </label>
 
             <label class="consent">
@@ -227,6 +232,7 @@
                 return montrerErreur(`Indique ton adresse e-mail universitaire (qui se termine par ${CONFIG.EMAIL_DOMAINE}).`);
             if (!$('consent').checked) return montrerErreur('Tu dois accepter l\'affichage public de tes informations.');
             if (!$('honneur').checked) return montrerErreur('Tu dois cocher l\'attestation sur l\'honneur.');
+            if (!$('contribution').checked) return montrerErreur('Tu dois accepter la contribution de 5 CHF après le premier cours.');
             if (!$('cgu').checked) return montrerErreur('Tu dois accepter les Conditions Générales d\'Utilisation et la Politique de confidentialité.');
 
             const btn = $('envoyer');
