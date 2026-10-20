@@ -86,7 +86,7 @@ const CONFIG = {
     ],
 
     // Version des CGU acceptée à l'inscription : à changer en même temps que legal.html
-    CGU_VERSION: 'v1.1',
+    CGU_VERSION: 'v1.0',
 
     // Les tuteurs doivent s'inscrire avec une adresse de ce domaine
     EMAIL_DOMAINE: '@unil.ch',
