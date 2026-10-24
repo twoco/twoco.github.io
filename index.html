@@ -49,6 +49,25 @@
         .prix { font-size: 1.5rem; font-weight: 800; }
         .btn-whatsapp { background-color: #25D366; color: white; text-decoration: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
         .msg { text-align: center; grid-column: 1 / -1; color: #475569; }
+
+        /* Barre au-dessus de la liste : avertissement, filtre par matière, tri */
+        .avertissement { background: #eff6ff; color: #1e3a8a; border-radius: 12px; padding: 12px 16px; font-size: 0.9rem; margin: 0 0 18px; }
+        .outils { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .filtres { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filtre { background: white; border: 1px solid #e2e8f0; color: var(--dark); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .filtre.actif { background: var(--blue); border-color: var(--blue); color: white; }
+        .tri { font-size: 0.9rem; color: #475569; }
+        .tri select { font: inherit; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; margin-left: 6px; }
+
+        /* Badge « Vérifié » avec bulle d'info (survol, ou toucher sur téléphone) et tag « Nouveau » */
+        .tuteur-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .tuteur-tete h3 { margin: 0; }
+        .badge-verifie, .tag-nouveau { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+        .badge-verifie { background: #dcfce7; color: #166534; }
+        .tag-nouveau { background: #fef9c3; color: #854d0e; }
+        .info { position: relative; cursor: help; font-weight: 700; outline: none; }
+        .info::after { content: attr(data-info); position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 200px; background: var(--dark); color: white; font-weight: 400; font-size: 0.8rem; line-height: 1.4; padding: 8px 10px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 5; }
+        .info:hover::after, .info:focus::after { opacity: 1; }
         footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
         footer a { color: #cbd5e1; }
     </style>
@@ -68,6 +87,18 @@
         <section id="vue-facs" class="facs-grid"><p class="msg">Chargement...</p></section>
         <section id="vue-annees" class="facs-grid" hidden></section>
         <section id="vue-liste" hidden>
+            <p class="avertissement">Twoco facilite le contact. L'organisation et le paiement des cours se gèrent 100 % entre étudiants.</p>
+            <div class="outils">
+                <div class="filtres" id="filtres"></div>
+                <label class="tri">Trier par
+                    <select id="tri">
+                        <option value="recommande">Recommandé</option>
+                        <option value="verifies">Vérifiés d'abord</option>
+                        <option value="nouveaux">Nouveaux d'abord</option>
+                        <option value="hasard">Au hasard</option>
+                    </select>
+                </label>
+            </div>
             <div id="tuteurs-container" class="tuteurs-grid"></div>
         </section>
     </main>
@@ -138,35 +169,70 @@
             route(false);
         }
 
+        // Liste des tuteurs d'une faculté/année, avec filtre par matière et tri
+        let liste = [], filtre = '';
+        const matieresDe = t => String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean);
+        const INFO_VERIFIE = 'Un cours a déjà été donné par ce tuteur via Twoco.';
+
+        // Recommandé = le moins contacté en haut (il a sûrement encore de la place),
+        // les égalités sont mélangées au hasard à chaque chargement de la page
+        const recommande = (x, y) => (x.compteur_clics || 0) - (y.compteur_clics || 0) || x.hasard - y.hasard;
+        const TRIS = {
+            recommande,
+            verifies: (x, y) => (y.badge_verifie - x.badge_verifie) || recommande(x, y),
+            nouveaux: (x, y) => (x.badge_verifie - y.badge_verifie) || recommande(x, y),
+            hasard: (x, y) => x.hasard - y.hasard
+        };
+
         async function afficherListe(cle, a) {
             const container = $('tuteurs-container');
             container.innerHTML = '<p class="msg">Chargement des tuteurs...</p>';
+            $('filtres').innerHTML = '';
+            filtre = '';
             const { data, error } = await db
                 .from('tuteurs')
-                .select('id, prenom, nom, matieres, prix, lieu, whatsapp')
-                .eq('status', 'valide').eq('faculte', cle).eq('annee', a)
-                .order('created_at', { ascending: false });
+                .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie')
+                .eq('status', 'valide').eq('faculte', cle).eq('annee', a);
 
             if (error) {
                 console.error(error);
                 container.innerHTML = '<p class="msg">Impossible de charger les tuteurs pour le moment. Réessaie dans quelques minutes.</p>';
                 return;
             }
-            if (!data || data.length === 0) {
+            liste = (data || []).map(t => ({ ...t, hasard: Math.random() }));
+
+            // Filtre : seulement les matières proposées par au moins un tuteur, dans l'ordre de la faculté
+            const proposees = new Set(liste.flatMap(matieresDe));
+            const ordre = aplat(((FAC[cle] || {}).annees || {})[a]?.matieres || []);
+            const filtres = [...ordre.filter(m => proposees.has(m)), ...[...proposees].filter(m => !ordre.includes(m))];
+            $('filtres').innerHTML = filtres.length > 1
+                ? ['', ...filtres].map(m => `<button type="button" class="filtre${m === '' ? ' actif' : ''}" data-matiere="${esc(m)}">${m === '' ? 'Toutes' : esc(m)}</button>`).join('')
+                : '';
+            rendreListe();
+        }
+
+        function rendreListe() {
+            const container = $('tuteurs-container');
+            if (liste.length === 0) {
                 container.innerHTML = '<p class="msg">Aucun tuteur pour le moment. Sois le premier à t\'inscrire !</p>';
                 return;
             }
-            container.innerHTML = data.map(t => {
-                const tags = String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean)
-                    .map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
+            const visibles = liste.filter(t => !filtre || matieresDe(t).includes(filtre)).sort(TRIS[$('tri').value] || recommande);
+            container.innerHTML = visibles.map(t => {
+                const tags = matieresDe(t).map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
                 const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');
+                const statut = t.badge_verifie
+                    ? `<span class="badge-verifie">✔ Vérifié <span class="info" tabindex="0" role="note" aria-label="${INFO_VERIFIE}" data-info="${INFO_VERIFIE}">ⓘ</span></span>`
+                    : '<span class="tag-nouveau">🌱 Nouveau</span>';
                 const tel = String(t.whatsapp || '').replace(/\D/g, '');
-                const message = encodeURIComponent('Bonjour, je te contacte depuis Twoco pour des cours d\'appui.');
-                const bouton = tel ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" target="_blank" rel="noopener">WhatsApp</a>` : '';
+                const message = encodeURIComponent(filtre
+                    ? `Salut, je t'ai trouvé via Twoco pour un cours de ${filtre} !`
+                    : 'Salut, je t\'ai trouvé via Twoco pour des cours d\'appui !');
+                const bouton = tel ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" data-id="${esc(t.id)}" target="_blank" rel="noopener">WhatsApp</a>` : '';
                 return `
                     <div class="tuteur-card">
                         <div class="tuteur-info">
-                            <h3 style="margin-top: 0; margin-bottom: 12px;">${nom}</h3>
+                            <div class="tuteur-tete"><h3>${nom}</h3>${statut}</div>
                             <div style="margin-bottom: 15px;">${tags}</div>
                             <p>📍 ${esc(t.lieu || '')}<br>📅 Dispo à convenir</p>
                         </div>
@@ -177,6 +243,21 @@
                     </div>`;
             }).join('');
         }
+
+        $('filtres').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-matiere]');
+            if (!btn) return;
+            filtre = btn.dataset.matiere;
+            document.querySelectorAll('#filtres .filtre').forEach(b => b.classList.toggle('actif', b === btn));
+            rendreListe();
+        });
+        $('tri').addEventListener('change', rendreListe);
+
+        // Chaque clic sur WhatsApp compte +1 pour ce tuteur (le lien s'ouvre quand même tout de suite)
+        $('tuteurs-container').addEventListener('click', (e) => {
+            const lien = e.target.closest('a.btn-whatsapp[data-id]');
+            if (lien) db.rpc('compter_clic', { tuteur_id: lien.dataset.id }).then(({ error }) => { if (error) console.error(error); });
+        });
 
         function montrer(vue, titre, sous, retourHref, retourTexte, insHref) {
             ['vue-facs', 'vue-annees', 'vue-liste'].forEach(v => { $(v).hidden = v !== vue; });
