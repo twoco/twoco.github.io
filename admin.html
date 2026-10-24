@@ -16,7 +16,21 @@
         .brand-title { font-size: 1.5rem; font-weight: 800; color: white; }
         .brand-title span { color: var(--cyan); }
         .navbar button { width: auto; margin: 0; padding: 8px 14px; background: transparent; border: 1px solid #475569; color: white; }
-        .wrap { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .wrap { max-width: 1400px; margin: 0 auto; padding: 0 20px 30px; }
+        /* Deux colonnes indépendantes : tuteurs à gauche, facultés et matières à droite */
+        .colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .colonne { min-width: 0; }
+        .onglets { display: none; }
+        @media (min-width: 1000px) {
+            .colonne { position: sticky; top: 0; max-height: calc(100vh - 66px); overflow-y: auto; padding-right: 6px; }
+        }
+        @media (max-width: 999px) {
+            .colonnes { grid-template-columns: 1fr; }
+            .onglets { display: flex; gap: 8px; position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 12px 0; }
+            .onglets button { flex: 1; background: #e2e8f0; color: var(--dark); }
+            .onglets button.actif { background: var(--blue); color: white; }
+            .colonne:not(.visible) { display: none; }
+        }
         .login { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .login h2 { margin-top: 0; }
         input { width: 100%; padding: 12px; margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font: inherit; }
@@ -42,12 +56,12 @@
         .puces { display: flex; flex-wrap: wrap; gap: 6px; }
         .puce { display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; border-radius: 999px; padding: 6px 6px 6px 12px; font-size: 0.85rem; font-weight: 600; }
         .puce button { padding: 2px 8px; border-radius: 999px; background: #fee2e2; color: #991b1b; font-size: 0.8rem; }
-        .ajout { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 8px; align-items: end; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
+        .ajout { display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 8px; align-items: end; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
         .ajout label { font-size: 0.8rem; font-weight: 600; color: #475569; }
         .ajout input { margin-top: 4px; padding: 10px; }
-        .ajout button { background: var(--blue); color: white; padding: 11px 16px; }
-        .ajout-fac { grid-template-columns: 2fr 2fr 1fr auto; border-top: none; margin-top: 8px; padding-top: 0; }
-        @media (max-width: 600px) { .ajout, .ajout-fac { grid-template-columns: 1fr 1fr; } .ajout button { grid-column: 1 / -1; } }
+        .ajout button { background: var(--blue); color: white; padding: 11px 16px; grid-column: 1 / -1; }
+        .ajout-fac { grid-template-columns: 2fr 2fr 1fr; border-top: none; margin-top: 8px; padding-top: 0; }
+        @media (max-width: 600px) { .ajout, .ajout-fac { grid-template-columns: 1fr 1fr; } }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -68,23 +82,33 @@
             <button id="logout" type="button">Se déconnecter</button>
         </div>
         <div class="wrap">
-            <h2 class="section">En attente de validation</h2>
-            <div id="liste-attente"></div>
-            <h2 class="section">Profils publiés</h2>
-            <div id="liste-valides"></div>
-
-            <h2 class="section">Facultés et matières</h2>
-            <p class="vide">Les changements apparaissent tout de suite sur le site.</p>
-            <div id="catalogue"></div>
-            <form class="bloc" id="form-fac">
-                <h3>Ajouter une faculté</h3>
-                <div class="ajout ajout-fac">
-                    <div><label for="fac-nom">Nom affiché</label><input id="fac-nom" placeholder="ex : Psychologie" maxlength="40" required></div>
-                    <div><label for="fac-sous">Sous-titre</label><input id="fac-sous" placeholder="ex : Faculté des SSP" maxlength="80"></div>
-                    <div><label for="fac-uni">Université</label><input id="fac-uni" value="UNIL" maxlength="20" required></div>
-                    <button type="submit">Ajouter</button>
+            <div class="onglets">
+                <button type="button" class="actif" data-onglet="col-tuteurs">Tuteurs</button>
+                <button type="button" data-onglet="col-matieres">Facultés et matières</button>
+            </div>
+            <div class="colonnes">
+                <div class="colonne visible" id="col-tuteurs">
+                    <h2 class="section">En attente de validation</h2>
+                    <div id="liste-attente"></div>
+                    <h2 class="section">Profils publiés</h2>
+                    <div id="liste-valides"></div>
                 </div>
-            </form>
+
+                <div class="colonne" id="col-matieres">
+                    <h2 class="section">Facultés et matières</h2>
+                    <p class="vide">Les changements apparaissent tout de suite sur le site.</p>
+                    <div id="catalogue"></div>
+                    <form class="bloc" id="form-fac">
+                        <h3>Ajouter une faculté</h3>
+                        <div class="ajout ajout-fac">
+                            <div><label for="fac-nom">Nom affiché</label><input id="fac-nom" placeholder="ex : Psychologie" maxlength="40" required></div>
+                            <div><label for="fac-sous">Sous-titre</label><input id="fac-sous" placeholder="ex : Faculté des SSP" maxlength="80"></div>
+                            <div><label for="fac-uni">Université</label><input id="fac-uni" value="UNIL" maxlength="20" required></div>
+                            <button type="submit">Ajouter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -191,6 +215,14 @@
                 }
             }
             charger();
+        });
+
+        // Sur téléphone : un onglet par colonne
+        document.querySelector('.onglets').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-onglet]');
+            if (!btn) return;
+            document.querySelectorAll('.onglets button').forEach(b => b.classList.toggle('actif', b === btn));
+            document.querySelectorAll('.colonne').forEach(c => c.classList.toggle('visible', c.id === btn.dataset.onglet));
         });
 
         // ---------- Facultés et matières (tables Supabase "facultes" et "matieres")
