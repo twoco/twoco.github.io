@@ -34,7 +34,8 @@
 
         /* Statistiques : chiffres clés + graphique en colonnes (une seule série à la fois) */
         .stats { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 24px; }
-        .stats h2 { margin: 0 0 14px; }
+        .stats h2 { margin: 0; }
+        .titre-stats { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
         .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .tuile { background: var(--bg); border-radius: 12px; padding: 12px 14px; }
         .tuile .val { font-size: 1.6rem; font-weight: 800; }
@@ -118,7 +119,10 @@
                 <button type="button" data-onglet="stats">Statistiques</button>
             </div>
             <section class="stats panneau" id="stats">
-                <h2>Statistiques</h2>
+                <div class="titre-stats">
+                    <h2>Statistiques</h2>
+                    <button type="button" class="btn-d petit" id="remise-zero">Remettre à zéro</button>
+                </div>
                 <p class="tuiles-titre">7 derniers jours</p>
                 <div class="tuiles" id="tuiles"><p class="vide">Chargement...</p></div>
                 <div class="commandes">
@@ -387,6 +391,20 @@
         $('graph').addEventListener('mouseover', (e) => montrerBulle(e.target.closest('.col')));
         $('graph').addEventListener('mouseleave', () => montrerBulle(null));
         $('graph').addEventListener('click', (e) => montrerBulle(e.target.closest('.col')));
+
+        // Efface toutes les statistiques et remet les clics WhatsApp des tuteurs à 0 (ex. au lancement du site)
+        $('remise-zero').addEventListener('click', async () => {
+            if (!confirm('Remettre toutes les statistiques à zéro ?\n\nCela efface toutes les visites et tous les clics enregistrés, et remet à 0 le nombre de clics WhatsApp de chaque tuteur (utilisé pour le tri « Recommandé »).\n\nCette action est définitive.')) return;
+            const { error } = await db.rpc('remettre_stats_a_zero');
+            if (error) {
+                console.error(error);
+                return alert('Remise à zéro refusée. Vérifie que tu es connecté avec le bon compte admin.');
+            }
+            alert('Statistiques remises à zéro.');
+            chargerStats();
+            chargerCatalogueAdmin();
+            charger();
+        });
 
         $('choix-mesure').addEventListener('change', () => {
             mesure = $('choix-mesure').value;
