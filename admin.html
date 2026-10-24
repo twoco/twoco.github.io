@@ -35,6 +35,11 @@
         /* Statistiques : chiffres clés + graphique en colonnes (une seule série à la fois) */
         .stats { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 24px; }
         .stats h2 { margin: 0; }
+        .fenetre-fond { position: fixed; inset: 0; background: rgba(13,23,46,0.5); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+        .fenetre { background: white; border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .fenetre h3 { margin: 0 0 10px; }
+        .fenetre p { font-size: 0.9rem; color: #334155; margin: 0 0 6px; }
+        .fenetre .boutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
         .titre-stats { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
         .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .tuile { background: var(--bg); border-radius: 12px; padding: 12px 14px; }
@@ -169,6 +174,20 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="fenetre-fond" id="fenetre-zero" hidden>
+        <form class="fenetre" id="form-zero">
+            <h3>Remettre les statistiques à zéro&nbsp;?</h3>
+            <p>Toutes les visites et tous les clics enregistrés seront effacés, et le nombre de clics WhatsApp de chaque tuteur reviendra à 0 (utilisé pour le tri « Recommandé »).</p>
+            <p><strong>Cette action est définitive.</strong> Pour confirmer, entre ton mot de passe admin.</p>
+            <input type="password" id="zero-mdp" placeholder="Mot de passe admin" autocomplete="current-password" required>
+            <p class="err" id="zero-err" role="alert"></p>
+            <div class="boutons">
+                <button type="button" class="btn-n" id="zero-annuler">Annuler</button>
+                <button type="submit" class="btn-d">Remettre à zéro</button>
+            </div>
+        </form>
     </div>
 
     <script>
@@ -392,14 +411,25 @@
         $('graph').addEventListener('mouseleave', () => montrerBulle(null));
         $('graph').addEventListener('click', (e) => montrerBulle(e.target.closest('.col')));
 
-        // Efface toutes les statistiques et remet les clics WhatsApp des tuteurs à 0 (ex. au lancement du site)
-        $('remise-zero').addEventListener('click', async () => {
-            if (!confirm('Remettre toutes les statistiques à zéro ?\n\nCela efface toutes les visites et tous les clics enregistrés, et remet à 0 le nombre de clics WhatsApp de chaque tuteur (utilisé pour le tri « Recommandé »).\n\nCette action est définitive.')) return;
+        // Efface toutes les statistiques et remet les clics WhatsApp des tuteurs à 0 (ex. au lancement du site).
+        // Il faut retaper le mot de passe admin pour confirmer.
+        function fermerZero() { $('fenetre-zero').hidden = true; $('zero-mdp').value = ''; $('zero-err').textContent = ''; }
+        $('remise-zero').addEventListener('click', () => { $('fenetre-zero').hidden = false; $('zero-mdp').focus(); });
+        $('zero-annuler').addEventListener('click', fermerZero);
+        $('form-zero').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            $('zero-err').textContent = '';
+            const { data } = await db.auth.getSession();
+            const email = data.session && data.session.user.email;
+            const verif = email && await db.auth.signInWithPassword({ email, password: $('zero-mdp').value });
+            if (!verif || verif.error) { $('zero-err').textContent = 'Mot de passe incorrect.'; return; }
             const { error } = await db.rpc('remettre_stats_a_zero');
             if (error) {
                 console.error(error);
-                return alert('Remise à zéro refusée. Vérifie que tu es connecté avec le bon compte admin.');
+                $('zero-err').textContent = 'Remise à zéro refusée. Vérifie que tu es connecté avec le bon compte admin.';
+                return;
             }
+            fermerZero();
             alert('Statistiques remises à zéro.');
             chargerStats();
             chargerCatalogueAdmin();
