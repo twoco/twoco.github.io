@@ -254,6 +254,12 @@
         });
         $('tri').addEventListener('change', rendreListe);
 
+        // Clic sur une carte de faculté (accueil)
+        $('vue-facs').addEventListener('click', (e) => {
+            const carte = e.target.closest('a.fac-card');
+            if (carte) enregistrer(db, 'clic_faculte', { faculte: carte.getAttribute('href').slice(1) });
+        });
+
         // Bulle ⓘ : s'ouvre et se ferme au clic (ou au toucher) ; un clic ailleurs la ferme
         function basculerInfo(info) {
             const ouvrir = info && !info.classList.contains('ouvert');
@@ -269,7 +275,7 @@
         // Chaque clic sur WhatsApp compte +1 pour ce tuteur (le lien s'ouvre quand même tout de suite)
         $('tuteurs-container').addEventListener('click', (e) => {
             const lien = e.target.closest('a.btn-whatsapp[data-id]');
-            if (lien && clicACompter(lien.dataset.id))
+            if (lien)
                 db.rpc('clic_whatsapp', { p_tuteur: lien.dataset.id, p_matiere: filtre || null })
                     .then(({ error }) => { if (error) console.error(error); });
         });

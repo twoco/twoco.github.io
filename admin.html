@@ -40,6 +40,8 @@
         .tuile .val { font-size: 1.6rem; font-weight: 800; }
         .tuile .lib { font-size: 0.8rem; color: #64748b; }
         .commandes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin: 18px 0 12px; }
+        .choix-mesure { font: inherit; font-size: 0.9rem; font-weight: 600; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; }
+        .tuiles-titre { margin: 0 0 10px; font-size: 0.85rem; color: #64748b; }
         .segments { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; }
         .segments button { padding: 7px 12px; font-size: 0.85rem; background: transparent; color: #334155; border-radius: 8px; }
         .segments button.actif { background: white; color: var(--dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -117,13 +119,17 @@
             </div>
             <section class="stats panneau" id="stats">
                 <h2>Statistiques</h2>
+                <p class="tuiles-titre">7 derniers jours</p>
                 <div class="tuiles" id="tuiles"><p class="vide">Chargement...</p></div>
                 <div class="commandes">
-                    <div class="segments" id="choix-mesure">
-                        <button type="button" class="actif" data-mesure="visite">Visites</button>
-                        <button type="button" data-mesure="clic_whatsapp">Clics WhatsApp</button>
-                        <button type="button" data-mesure="clic_matiere">Clics matières</button>
-                    </div>
+                    <select id="choix-mesure" class="choix-mesure" aria-label="Que mesurer">
+                        <option value="visite">Visites du site</option>
+                        <option value="clic_faculte">Clics sur les facultés</option>
+                        <option value="clic_matiere">Clics sur les matières</option>
+                        <option value="clic_whatsapp">Clics WhatsApp</option>
+                        <option value="visite_inscription">Visites « Devenir tuteur »</option>
+                        <option value="candidature">Candidatures envoyées</option>
+                    </select>
                     <div class="segments" id="choix-periode">
                         <button type="button" class="actif" data-periode="jour">Par jour</button>
                         <button type="button" data-periode="semaine">Par semaine</button>
@@ -199,7 +205,7 @@
                         ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? '⭐ <strong>Vérifié</strong>' : '🌱 Nouveau'}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
-                        ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées le ${esc(new Date(t.cgu_date).toLocaleString('fr-CH'))}</p>` : ''}
+                        ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
                     </div>
                     <div class="actions">${actions.map(a =>
                         `<button type="button" class="${a.cls}" data-action="${a.action}" data-id="${esc(t.id)}">${a.label}</button>`
@@ -291,10 +297,14 @@
             }
         });
 
-        // ---------- Statistiques (fonctions Supabase stats_par_jour et stats_matieres)
+        // ---------- Statistiques (fonctions Supabase stats_par_jour et stats_totaux)
         let parJour = {};      // { 'AAAA-MM-JJ': { visite: n, clic_whatsapp: n, clic_matiere: n } }
         let mesure = 'visite', periode = 'jour';
-        const NOMS = { visite: 'Visites', clic_whatsapp: 'Clics WhatsApp', clic_matiere: 'Clics matières' };
+        const NOMS = {
+            visite: 'Visites du site', clic_faculte: 'Clics sur les facultés', clic_matiere: 'Clics sur les matières',
+            clic_whatsapp: 'Clics WhatsApp', visite_inscription: 'Visites « Devenir tuteur »', candidature: 'Candidatures envoyées'
+        };
+        const UNITES = { visite: 'visites', clic_faculte: 'clics', clic_matiere: 'clics', clic_whatsapp: 'clics', visite_inscription: 'visites', candidature: 'candidatures' };
         const cleJour = d => d.toLocaleDateString('sv-SE');
         const decaler = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
         const somme = (type, jours) => {
@@ -312,12 +322,8 @@
             }
             parJour = {};
             data.forEach(r => { (parJour[r.jour] = parJour[r.jour] || {})[r.type] = Number(r.total); });
-            $('tuiles').innerHTML = [
-                [somme('visite', 1), 'Visites aujourd\'hui'],
-                [somme('visite', 7), 'Visites (7 jours)'],
-                [somme('clic_whatsapp', 7), 'Clics WhatsApp (7 jours)'],
-                [somme('clic_matiere', 7), 'Clics matières (7 jours)']
-            ].map(([v, l]) => `<div class="tuile"><div class="val">${v}</div><div class="lib">${l}</div></div>`).join('');
+            $('tuiles').innerHTML = Object.keys(NOMS).map(type =>
+                `<div class="tuile"><div class="val">${somme(type, 7)}</div><div class="lib">${NOMS[type]}</div></div>`).join('');
             dessinerGraphique();
         }
 
@@ -352,7 +358,7 @@
                     <div class="graph-zone">
                         <div class="grille" style="top:0"></div><div class="grille" style="top:50%"></div>
                         <div class="barres">${s.map((p, i) => `
-                            <div class="col" data-info="${esc(p.detail)} : ${p.valeur} ${esc(NOMS[mesure].toLowerCase())}">
+                            <div class="col" data-info="${esc(p.detail)} : ${p.valeur} ${UNITES[mesure]}">
                                 <div class="barre" style="height:${(p.valeur / haut) * 100}%"></div>
                                 ${(s.length - 1 - i) % pas === 0 ? `<span class="x">${esc(p.etiquette)}</span>` : ''}
                             </div>`).join('')}
@@ -382,11 +388,8 @@
         $('graph').addEventListener('mouseleave', () => montrerBulle(null));
         $('graph').addEventListener('click', (e) => montrerBulle(e.target.closest('.col')));
 
-        $('choix-mesure').addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-mesure]');
-            if (!btn) return;
-            mesure = btn.dataset.mesure;
-            $('choix-mesure').querySelectorAll('button').forEach(b => b.classList.toggle('actif', b === btn));
+        $('choix-mesure').addEventListener('change', () => {
+            mesure = $('choix-mesure').value;
             dessinerGraphique();
         });
         $('choix-periode').addEventListener('click', (e) => {
@@ -407,6 +410,7 @@
 
         // ---------- Facultés et matières (tables Supabase "facultes" et "matieres")
         let cat = { facultes: [], matieres: [] };
+        let clicsFacultes = {}; // faculte -> nombre de clics sur sa carte (accueil)
         let clicsMatieres = {}; // "faculte|matiere" -> nombre de clics sur le filtre de cette matière
 
         // "Sciences de la vie" -> "sciencesdelavie" (sert dans l'adresse des pages et dans les profils)
@@ -419,10 +423,14 @@
 
         async function chargerCatalogueAdmin() {
             try {
-                const [c, s] = await Promise.all([chargerCatalogue(db), db.rpc('stats_matieres')]);
+                const [c, s] = await Promise.all([chargerCatalogue(db), db.rpc('stats_totaux')]);
                 cat = c;
+                clicsFacultes = {};
                 clicsMatieres = {};
-                (s.data || []).forEach(r => { clicsMatieres[r.faculte + '|' + r.matiere] = Number(r.total); });
+                (s.data || []).forEach(r => {
+                    if (r.type === 'clic_faculte') clicsFacultes[r.faculte] = (clicsFacultes[r.faculte] || 0) + Number(r.total);
+                    if (r.type === 'clic_matiere') clicsMatieres[r.faculte + '|' + r.matiere] = (clicsMatieres[r.faculte + '|' + r.matiere] || 0) + Number(r.total);
+                });
             } catch (e) {
                 console.error(e);
                 $('catalogue').innerHTML = '<p class="vide">Impossible de charger les facultés.</p>';
@@ -451,7 +459,7 @@
                     <div class="bloc">
                         <div class="bloc-tete">
                             <div>
-                                <h3>${esc(f.nom)}</h3>
+                                <h3>${esc(f.nom)} <span class="nb-clics" title="Clics sur la carte de cette faculté (accueil)">${clicsFacultes[f.cle] || 0} clics</span></h3>
                                 <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)}</p>
                             </div>
                             <button type="button" class="btn-d petit" data-cat="suppr-fac" data-cle="${esc(f.cle)}">Supprimer la faculté</button>

@@ -174,7 +174,7 @@
         $('fac-box').addEventListener('change', afficherAnnees);
         $('annee-box').addEventListener('change', afficherMatieres);
 
-        enregistrer(db, 'visite', { page: 'inscription' });
+        enregistrer(db, 'visite_inscription', { page: 'inscription' });
         (async () => {
             try {
                 FAC = arbreCatalogue(await chargerCatalogue(db));
@@ -272,6 +272,7 @@
             }
             $('formulaire').style.display = 'none';
             $('succes').style.display = 'block';
+            enregistrer(db, 'candidature', { faculte });
         });
     </script>
 </body>
