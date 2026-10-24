@@ -40,6 +40,16 @@
         .fenetre h3 { margin: 0 0 10px; }
         .fenetre p { font-size: 0.9rem; color: #334155; margin: 0 0 6px; }
         .fenetre .boutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .paiements { margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
+        .ajout-paiement { grid-template-columns: 2fr 1fr 1fr; border-top: none; padding-top: 0; }
+        .ajout-paiement .large { grid-column: 1 / -1; }
+        .ajout select { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #e2e8f0; border-radius: 10px; font: inherit; background: white; box-sizing: border-box; }
+        .table-paiements { overflow-x: auto; margin-top: 16px; }
+        .table-paiements table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        .table-paiements th { text-align: left; color: #64748b; font-weight: 600; font-size: 0.8rem; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+        .table-paiements td { padding: 8px; border-bottom: 1px solid #f1f5f9; }
+        .table-paiements td.montant { font-weight: 700; white-space: nowrap; }
+        .table-paiements button { padding: 2px 8px; border-radius: 999px; background: #fee2e2; color: #991b1b; font-size: 0.8rem; }
         .titre-stats { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
         .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .tuile { background: var(--bg); border-radius: 12px; padding: 12px 14px; }
@@ -148,6 +158,25 @@
                 </div>
                 <p class="graph-titre" id="graph-titre"></p>
                 <div id="graph"></div>
+
+                <div class="paiements">
+                    <div class="titre-stats">
+                        <h2>Paiements TWINT</h2>
+                        <button type="button" class="btn-n petit" id="export-paiements">Télécharger pour les impôts</button>
+                    </div>
+                    <div class="tuiles" id="tuiles-paiements"></div>
+                    <form class="ajout ajout-paiement" id="form-paiement">
+                        <div><label for="pay-tuteur">Tuteur</label><select id="pay-tuteur" required></select></div>
+                        <div><label for="pay-montant">Montant (CHF)</label><input id="pay-montant" type="number" min="0.05" step="0.05" value="5" required></div>
+                        <div><label for="pay-date">Date</label><input id="pay-date" type="date" required></div>
+                        <div class="large"><label for="pay-remarque">Remarque <span class="vide">(facultatif)</span></label><input id="pay-remarque" maxlength="120" placeholder="ex : 2e élève, Statistique"></div>
+                        <button type="submit">Ajouter un paiement</button>
+                    </form>
+                    <div class="table-paiements"><table>
+                        <thead><tr><th>Date</th><th>Tuteur</th><th>Montant</th><th>Remarque</th><th></th></tr></thead>
+                        <tbody id="liste-paiements"></tbody>
+                    </table></div>
+                </div>
             </section>
             <div class="colonnes">
                 <div class="colonne panneau visible" id="col-tuteurs">
@@ -199,7 +228,7 @@
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
         function montrerLogin() { $('panel').hidden = true; $('login').hidden = false; }
-        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); chargerCatalogueAdmin(); chargerStats(); }
+        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); chargerCatalogueAdmin(); chargerStats(); chargerPaiements(); }
 
         $('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -268,6 +297,8 @@
                 </div>`;
             };
             const valides = data.filter(t => t.status === 'valide');
+            $('pay-tuteur').innerHTML = '<option value="">Choisir…</option>' + valides
+                .map(t => `<option value="${esc(t.id)}">${esc(t.prenom)} ${esc(t.nom)}</option>`).join('');
 
             $('liste-attente').innerHTML = attente.length
                 ? attente.map(t => carte(t, [
@@ -280,6 +311,7 @@
                     t.badge_verifie
                         ? { cls: 'btn-n', action: 'badge', label: 'Retirer ⭐' }
                         : { cls: 'btn-v', action: 'badge', label: '⭐ Vérifié' },
+                    { cls: 'btn-v', action: 'paiement', label: '💰 Paiement reçu' },
                     // 📌 Fondateur -> 📌 Cofondateur -> Retirer 📌
                     { cls: 'btn-n', action: 'fondateur',
                       label: !t.fondateur ? '📌 Fondateur' : t.fondateur === 'fondateur' ? '📌 Cofondateur' : 'Retirer 📌' },
@@ -294,16 +326,26 @@
             if (!btn) return;
             const { action, id } = btn.dataset;
             let resultat;
+            const tuteur = fiches.find(x => String(x.id) === id) || {};
+
+            if (action === 'paiement') {
+                if (confirm(`Enregistrer un paiement TWINT de ${MONTANT_CONTRIBUTION} CHF de ${tuteur.prenom} ${tuteur.nom}, reçu aujourd'hui ?`))
+                    await enregistrerPaiement(tuteur, MONTANT_CONTRIBUTION, aujourdhui(), '');
+                return;
+            }
 
             if (action === 'supprimer') {
                 if (!confirm('Supprimer définitivement ce profil ?')) return;
                 resultat = await db.from('tuteurs').delete().eq('id', id).select();
             } else if (action === 'badge') {
-                const t = fiches.find(x => String(x.id) === id) || {};
-                resultat = await db.from('tuteurs').update({ badge_verifie: !t.badge_verifie }).eq('id', id).select();
+                // En donnant le badge, on propose d'enregistrer le TWINT du premier cours
+                const payer = !tuteur.badge_verifie &&
+                    confirm(`As-tu reçu le TWINT de ${MONTANT_CONTRIBUTION} CHF de ${tuteur.prenom} ${tuteur.nom} ?\n\nOK = donner le badge ET enregistrer le paiement\nAnnuler = donner seulement le badge`);
+                resultat = await db.from('tuteurs').update({ badge_verifie: !tuteur.badge_verifie }).eq('id', id).select();
+                if (payer && !resultat.error && resultat.data && resultat.data.length)
+                    await enregistrerPaiement(tuteur, MONTANT_CONTRIBUTION, aujourdhui(), 'Premier cours (badge Vérifié)');
             } else if (action === 'fondateur') {
-                const t = fiches.find(x => String(x.id) === id) || {};
-                const suivant = !t.fondateur ? 'fondateur' : t.fondateur === 'fondateur' ? 'cofondateur' : null;
+                const suivant = !tuteur.fondateur ? 'fondateur' : tuteur.fondateur === 'fondateur' ? 'cofondateur' : null;
                 resultat = await db.from('tuteurs').update({ fondateur: suivant }).eq('id', id).select();
             } else {
                 const statut = action === 'valider' ? 'valide' : 'en_attente';
@@ -332,6 +374,87 @@
                 }
             }
             charger();
+        });
+
+        // ---------- Paiements TWINT (table Supabase "paiements"), pour les impôts
+        const MONTANT_CONTRIBUTION = 5;
+        let paiements = [];
+        const aujourdhui = () => new Date().toLocaleDateString('sv-SE');
+        const chf = n => Number(n).toFixed(2).replace(/\.00$/, '') + ' CHF';
+
+        async function chargerPaiements() {
+            const { data, error } = await db.from('paiements').select('*').order('date', { ascending: false }).order('id', { ascending: false });
+            if (error) {
+                console.error(error);
+                $('liste-paiements').innerHTML = '<tr><td colspan="5" class="vide">Impossible de charger les paiements.</td></tr>';
+                return;
+            }
+            paiements = data;
+            const mois = aujourdhui().slice(0, 7), annee = aujourdhui().slice(0, 4);
+            const total = filtre => paiements.filter(filtre).reduce((s, p) => s + Number(p.montant), 0);
+            $('tuiles-paiements').innerHTML = [
+                [chf(total(p => p.date.startsWith(mois))), 'Ce mois-ci'],
+                [chf(total(p => p.date.startsWith(annee))), 'Cette année (' + annee + ')'],
+                [paiements.filter(p => p.date.startsWith(annee)).length, 'Paiements cette année']
+            ].map(([v, l]) => `<div class="tuile"><div class="val">${v}</div><div class="lib">${l}</div></div>`).join('');
+            $('liste-paiements').innerHTML = paiements.length ? paiements.map(p => `
+                <tr>
+                    <td>${esc(new Date(p.date + 'T12:00').toLocaleDateString('fr-CH'))}</td>
+                    <td>${esc(p.tuteur_nom)}</td>
+                    <td class="montant">${esc(chf(p.montant))}</td>
+                    <td>${esc(p.remarque || '')}</td>
+                    <td><button type="button" data-paiement="${p.id}" title="Supprimer ce paiement">✕</button></td>
+                </tr>`).join('') : '<tr><td colspan="5" class="vide">Aucun paiement enregistré.</td></tr>';
+        }
+
+        async function enregistrerPaiement(t, montant, date, remarque) {
+            const { data, error } = await db.from('paiements').insert([{
+                tuteur_id: String(t.id), tuteur_nom: `${t.prenom || ''} ${t.nom || ''}`.trim(), montant, date, remarque: remarque || null
+            }]).select();
+            if (error || !data || !data.length) {
+                console.error(error);
+                alert('Le paiement n\'a pas pu être enregistré. Vérifie que tu es connecté avec le bon compte admin.');
+                return false;
+            }
+            chargerPaiements();
+            return true;
+        }
+
+        $('pay-date').value = aujourdhui();
+        $('form-paiement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const t = fiches.find(x => String(x.id) === $('pay-tuteur').value);
+            const montant = Number($('pay-montant').value);
+            if (!t || !(montant > 0) || !$('pay-date').value) return alert('Choisis un tuteur, un montant et une date.');
+            if (await enregistrerPaiement(t, montant, $('pay-date').value, $('pay-remarque').value.trim())) {
+                $('pay-remarque').value = '';
+                $('pay-montant').value = MONTANT_CONTRIBUTION;
+            }
+        });
+
+        $('liste-paiements').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-paiement]');
+            if (!btn) return;
+            const p = paiements.find(x => String(x.id) === btn.dataset.paiement);
+            if (!p || !confirm(`Supprimer le paiement de ${chf(p.montant)} de ${p.tuteur_nom} du ${new Date(p.date + 'T12:00').toLocaleDateString('fr-CH')} ?`)) return;
+            const { data, error } = await db.from('paiements').delete().eq('id', p.id).select();
+            if (error || !data || !data.length) return alert('Suppression refusée.');
+            chargerPaiements();
+        });
+
+        // Fichier CSV (s'ouvre dans Excel) : une ligne par paiement + total
+        $('export-paiements').addEventListener('click', () => {
+            if (!paiements.length) return alert('Aucun paiement à télécharger.');
+            const cellule = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+            const lignes = [['Date', 'Tuteur', 'Montant (CHF)', 'Remarque']]
+                .concat([...paiements].reverse().map(p => [p.date, p.tuteur_nom, Number(p.montant).toFixed(2), p.remarque || '']))
+                .concat([['', 'TOTAL', paiements.reduce((s, p) => s + Number(p.montant), 0).toFixed(2), '']]);
+            const csv = '﻿' + lignes.map(l => l.map(cellule).join(';')).join('\r\n');
+            const lien = document.createElement('a');
+            lien.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+            lien.download = `twoco-paiements-${aujourdhui()}.csv`;
+            lien.click();
+            URL.revokeObjectURL(lien.href);
         });
 
         // ---------- Copier les e-mails des tuteurs publiés (pour l'e-mail groupé en Cci)
