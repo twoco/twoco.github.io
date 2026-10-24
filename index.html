@@ -177,7 +177,8 @@
         let liste = [], filtre = '', faculteCourante = '';
         const matieresDe = t => String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean);
         const infoVerifie = n => `${n} élève${n > 1 ? 's ont' : ' a'} déjà suivi un premier cours avec ce tuteur via Twoco.`;
-        const ETOILE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fbbf24" stroke="#d97706" stroke-width="1" stroke-linejoin="round" d="M12 1.8l3.1 6.4 7 1-5.1 4.9 1.2 7L12 17.8l-6.2 3.3 1.2-7L1.9 9.2l7-1z"/></svg>';
+        // Étoile aux pointes arrondies (un trait épais aux coins ronds autour de la forme)
+        const ETOILE = '<svg viewBox="-1.5 -1.5 27 27" aria-hidden="true"><path fill="#fbbf24" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round" d="M12 1.8l3.1 6.4 7 1-5.1 4.9 1.2 7L12 17.8l-6.2 3.3 1.2-7L1.9 9.2l7-1z"/></svg>';
 
         // Recommandé = le moins contacté en haut (il a sûrement encore de la place),
         // les égalités sont mélangées au hasard à chaque chargement de la page
