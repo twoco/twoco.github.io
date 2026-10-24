@@ -7,7 +7,8 @@
     <title>Admin - TWOCO</title>
     <link href="fonts/inter.css" rel="stylesheet">
     <script src="vendor/supabase.js"></script>
-    <script src="config.js"></script>
+    <script src="config.js?v=20261024"></script>
+    <script src="catalogue.js?v=20261024"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
@@ -31,6 +32,22 @@
         .btn-n { background: #f1f5f9; color: #334155; }
         .btn-d { background: #fee2e2; color: #991b1b; }
         .vide { color: #64748b; }
+        .bloc { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+        .bloc h3 { margin: 0; }
+        .bloc-tete { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+        .bloc-tete p { margin: 4px 0 0; font-size: 0.85rem; color: #64748b; }
+        .petit { padding: 8px 12px; font-size: 0.85rem; }
+        .annee-titre { margin: 18px 0 6px; font-size: 0.95rem; }
+        .sem { margin: 10px 0 4px; font-size: 0.8rem; font-weight: 600; color: #64748b; }
+        .puces { display: flex; flex-wrap: wrap; gap: 6px; }
+        .puce { display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; border-radius: 999px; padding: 6px 6px 6px 12px; font-size: 0.85rem; font-weight: 600; }
+        .puce button { padding: 2px 8px; border-radius: 999px; background: #fee2e2; color: #991b1b; font-size: 0.8rem; }
+        .ajout { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 8px; align-items: end; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
+        .ajout label { font-size: 0.8rem; font-weight: 600; color: #475569; }
+        .ajout input { margin-top: 4px; padding: 10px; }
+        .ajout button { background: var(--blue); color: white; padding: 11px 16px; }
+        .ajout-fac { grid-template-columns: 2fr 2fr 1fr auto; border-top: none; margin-top: 8px; padding-top: 0; }
+        @media (max-width: 600px) { .ajout, .ajout-fac { grid-template-columns: 1fr 1fr; } .ajout button { grid-column: 1 / -1; } }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -55,6 +72,19 @@
             <div id="liste-attente"></div>
             <h2 class="section">Profils publiés</h2>
             <div id="liste-valides"></div>
+
+            <h2 class="section">Facultés et matières</h2>
+            <p class="vide">Les changements apparaissent tout de suite sur le site.</p>
+            <div id="catalogue"></div>
+            <form class="bloc" id="form-fac">
+                <h3>Ajouter une faculté</h3>
+                <div class="ajout ajout-fac">
+                    <div><label for="fac-nom">Nom affiché</label><input id="fac-nom" placeholder="ex : Psychologie" maxlength="40" required></div>
+                    <div><label for="fac-sous">Sous-titre</label><input id="fac-sous" placeholder="ex : Faculté des SSP" maxlength="80"></div>
+                    <div><label for="fac-uni">Université</label><input id="fac-uni" value="UNIL" maxlength="20" required></div>
+                    <button type="submit">Ajouter</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -65,7 +95,7 @@
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
         function montrerLogin() { $('panel').hidden = true; $('login').hidden = false; }
-        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); }
+        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); chargerCatalogueAdmin(); }
 
         $('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -161,6 +191,121 @@
                 }
             }
             charger();
+        });
+
+        // ---------- Facultés et matières (tables Supabase "facultes" et "matieres")
+        let cat = { facultes: [], matieres: [] };
+
+        // "Sciences de la vie" -> "sciencesdelavie" (sert dans l'adresse des pages et dans les profils)
+        function nouvelleCle(nom) {
+            const base = nom.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'fac';
+            let cle = base, i = 2;
+            while (cat.facultes.some(f => f.cle === cle)) cle = base + i++;
+            return cle;
+        }
+
+        async function chargerCatalogueAdmin() {
+            try {
+                cat = await chargerCatalogue(db);
+            } catch (e) {
+                console.error(e);
+                $('catalogue').innerHTML = '<p class="vide">Impossible de charger les facultés.</p>';
+                return;
+            }
+            rendreCatalogue();
+        }
+
+        function rendreCatalogue() {
+            const arbre = arbreCatalogue(cat, true);
+            $('catalogue').innerHTML = cat.facultes.map(f => {
+                const annees = arbre[f.cle].annees;
+                const semestres = [...new Set(cat.matieres.filter(m => m.faculte_cle === f.cle && m.semestre).map(m => m.semestre))];
+                const contenu = Object.keys(annees).length ? Object.keys(annees).map(a => {
+                    const parSem = {};
+                    cat.matieres.filter(m => m.faculte_cle === f.cle && m.annee === a)
+                        .forEach(m => (parSem[m.semestre || ''] = parSem[m.semestre || ''] || []).push(m));
+                    return `<p class="annee-titre"><strong>${esc(nomAnnee(a))}</strong></p>` +
+                        Object.entries(parSem).map(([sem, liste]) =>
+                            (sem ? `<p class="sem">${esc(sem)}</p>` : '') +
+                            `<div class="puces">${liste.map(m =>
+                                `<span class="puce">${esc(m.nom)}<button type="button" data-cat="suppr-mat" data-id="${m.id}" title="Supprimer">✕</button></span>`
+                            ).join('')}</div>`).join('');
+                }).join('') : '<p class="vide">Aucune matière : cette faculté n\'apparaît pas encore sur le site.</p>';
+                return `
+                    <div class="bloc">
+                        <div class="bloc-tete">
+                            <div>
+                                <h3>${esc(f.nom)}</h3>
+                                <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)}</p>
+                            </div>
+                            <button type="button" class="btn-d petit" data-cat="suppr-fac" data-cle="${esc(f.cle)}">Supprimer la faculté</button>
+                        </div>
+                        ${contenu}
+                        <form class="ajout" data-fac="${esc(f.cle)}">
+                            <div><label>Nouvelle matière</label><input name="nom" placeholder="ex : Microéconomie" maxlength="80" required></div>
+                            <div><label>Année</label><input name="annee" type="number" min="1" max="6" value="1" required></div>
+                            <div><label>Semestre <span class="vide">(facultatif)</span></label><input name="semestre" list="sem-${esc(f.cle)}" placeholder="ex : Premier semestre" maxlength="40">
+                                <datalist id="sem-${esc(f.cle)}">${semestres.map(s => `<option value="${esc(s)}">`).join('')}</datalist></div>
+                            <button type="submit">Ajouter</button>
+                        </form>
+                    </div>`;
+            }).join('');
+        }
+
+        // Supabase ne renvoie pas d'erreur quand une règle RLS bloque : on vérifie qu'une ligne a été touchée
+        function ok(resultat) {
+            if (resultat.error || !resultat.data || resultat.data.length === 0) {
+                console.error(resultat.error);
+                alert('Action refusée. Vérifie que tu es connecté avec le bon compte admin.');
+                return false;
+            }
+            return true;
+        }
+
+        $('catalogue').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target.closest('form.ajout');
+            if (!form) return;
+            const cle = form.dataset.fac;
+            const nom = form.nom.value.trim();
+            const annee = String(Number(form.annee.value) || 1);
+            const semestre = form.semestre.value.trim() || null;
+            if (!nom) return;
+            if (cat.matieres.some(m => m.faculte_cle === cle && m.annee === annee && m.nom.toLowerCase() === nom.toLowerCase()))
+                return alert('Cette matière existe déjà pour cette année.');
+            const ordre = Math.max(-1, ...cat.matieres.filter(m => m.faculte_cle === cle).map(m => m.ordre)) + 1;
+            if (!ok(await db.from('matieres').insert([{ faculte_cle: cle, annee, semestre, nom, ordre }]).select())) return;
+            chargerCatalogueAdmin();
+        });
+
+        $('catalogue').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-cat]');
+            if (!btn) return;
+            if (btn.dataset.cat === 'suppr-mat') {
+                const m = cat.matieres.find(x => String(x.id) === btn.dataset.id);
+                if (!m || !confirm(`Supprimer la matière « ${m.nom} » ?\nLes tuteurs qui l'ont déjà choisie la gardent sur leur profil.`)) return;
+                if (!ok(await db.from('matieres').delete().eq('id', m.id).select())) return;
+            } else {
+                const f = cat.facultes.find(x => x.cle === btn.dataset.cle);
+                const n = fiches.filter(t => t.faculte === f.cle).length;
+                if (!f || !confirm(`Supprimer la faculté « ${f.nom} » et toutes ses matières ?` +
+                    (n ? `\n⚠️ ${n} profil(s) de tuteur sont rattachés à cette faculté : ils ne seront plus visibles sur le site.` : ''))) return;
+                if (!ok(await db.from('facultes').delete().eq('cle', f.cle).select())) return;
+            }
+            chargerCatalogueAdmin();
+        });
+
+        $('form-fac').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nom = $('fac-nom').value.trim();
+            if (!nom) return;
+            const ordre = Math.max(-1, ...cat.facultes.map(f => f.ordre)) + 1;
+            if (!ok(await db.from('facultes').insert([{
+                cle: nouvelleCle(nom), nom, sous_titre: $('fac-sous').value.trim() || null,
+                universite: $('fac-uni').value.trim() || 'UNIL', ordre
+            }]).select())) return;
+            $('fac-nom').value = ''; $('fac-sous').value = '';
+            chargerCatalogueAdmin();
         });
 
         (async () => {

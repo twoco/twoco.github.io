@@ -6,7 +6,8 @@
     <title>Devenir tuteur - TWOCO</title>
     <link href="fonts/inter.css" rel="stylesheet">
     <script src="vendor/supabase.js"></script>
-    <script src="config.js"></script>
+    <script src="config.js?v=20261024"></script>
+    <script src="catalogue.js?v=20261024"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
@@ -59,7 +60,7 @@
 
             <fieldset>
                 <legend>Ta faculté</legend>
-                <div class="choix" id="fac-box"></div>
+                <div class="choix" id="fac-box"><p class="hint">Chargement...</p></div>
             </fieldset>
 
             <fieldset id="annee-fs" hidden>
@@ -140,13 +141,11 @@
         const valeur = nom => (document.querySelector(`input[name="${nom}"]:checked`) || {}).value;
         const coches = nom => [...document.querySelectorAll(`input[name="${nom}"]:checked`)].map(i => i.value);
 
-        // Faculté -> année -> matières
-        $('fac-box').innerHTML = Object.entries(CONFIG.FACULTES).map(([cle, f]) =>
-            `<label class="chip"><input type="radio" name="faculte" value="${esc(cle)}"><span>${esc(f.nom)}</span></label>`
-        ).join('');
+        // Faculté -> année -> matières (liste chargée depuis Supabase, voir catalogue.js)
+        let FAC = {};
 
         function afficherAnnees() {
-            const fac = CONFIG.FACULTES[valeur('faculte')];
+            const fac = FAC[valeur('faculte')];
             if (!fac) { $('annee-fs').hidden = true; afficherMatieres(); return; }
             $('annee-box').innerHTML = Object.entries(fac.annees).map(([a, an]) =>
                 `<label class="chip"><input type="radio" name="annee" value="${esc(a)}"><span>${esc(an.nom)}</span></label>`
@@ -160,7 +159,7 @@
         }
 
         function afficherMatieres() {
-            const fac = CONFIG.FACULTES[valeur('faculte')];
+            const fac = FAC[valeur('faculte')];
             const an = fac && fac.annees[valeur('annee')];
             if (!an) { $('matieres-box').innerHTML = '<p class="hint">Choisis d\'abord ta faculté.</p>'; return; }
             const groupes = Array.isArray(an.matieres) ? { '': an.matieres } : an.matieres;
@@ -174,13 +173,25 @@
         $('fac-box').addEventListener('change', afficherAnnees);
         $('annee-box').addEventListener('change', afficherMatieres);
 
+        (async () => {
+            try {
+                FAC = arbreCatalogue(await chargerCatalogue(db));
+            } catch (e) {
+                console.error(e);
+                $('fac-box').innerHTML = '<p class="hint">Impossible de charger les facultés. Réessaie dans un instant.</p>';
+                return;
+            }
+            $('fac-box').innerHTML = Object.entries(FAC).map(([cle, f]) =>
+                `<label class="chip"><input type="radio" name="faculte" value="${esc(cle)}"><span>${esc(f.nom)}</span></label>`
+            ).join('');
 
-        // Pré-sélection via ?fac=droit&annee=1, ou automatique s'il n'y a qu'une faculté
-        const cles = Object.keys(CONFIG.FACULTES);
-        const voulueFac = new URLSearchParams(location.search).get('fac');
-        const depart = cles.includes(voulueFac) ? voulueFac : (cles.length === 1 ? cles[0] : null);
-        if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
-        afficherAnnees();
+            // Pré-sélection via ?fac=droit&annee=1, ou automatique s'il n'y a qu'une faculté
+            const cles = Object.keys(FAC);
+            const voulueFac = new URLSearchParams(location.search).get('fac');
+            const depart = cles.includes(voulueFac) ? voulueFac : (cles.length === 1 ? cles[0] : null);
+            if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
+            afficherAnnees();
+        })();
 
         remplirChoix('lieux-box', CONFIG.LIEUX, 'lieu');
         if (CONFIG.PRIX_FIXE) {

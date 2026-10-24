@@ -6,7 +6,8 @@
     <title>TWOCO - Cours d'appui entre étudiants</title>
     <link href="fonts/inter.css" rel="stylesheet">
     <script src="vendor/supabase.js"></script>
-    <script src="config.js"></script>
+    <script src="config.js?v=20261024"></script>
+    <script src="catalogue.js?v=20261024"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
@@ -64,7 +65,7 @@
 
     <main class="container">
         <a href="#" id="retour" class="retour" hidden></a>
-        <section id="vue-facs" class="facs-grid"></section>
+        <section id="vue-facs" class="facs-grid"><p class="msg">Chargement...</p></section>
         <section id="vue-annees" class="facs-grid" hidden></section>
         <section id="vue-liste" hidden>
             <div id="tuteurs-container" class="tuteurs-grid"></div>
@@ -79,7 +80,7 @@
 
     <script>
         const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        const FAC = CONFIG.FACULTES;
+        let FAC = {}; // rempli depuis Supabase (catalogue.js)
         const $ = id => document.getElementById(id);
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const aplat = m => Array.isArray(m) ? m : Object.values(m).flat();
@@ -210,8 +211,17 @@
         }
 
         window.addEventListener('hashchange', () => route(true));
-        route(true);
-        chargerCompteurs();
+        (async () => {
+            try {
+                FAC = arbreCatalogue(await chargerCatalogue(db));
+            } catch (e) {
+                console.error(e);
+                $('vue-facs').innerHTML = '<p class="msg">Impossible de charger les facultés. Réessaie dans un instant.</p>';
+                return;
+            }
+            route(true);
+            chargerCompteurs();
+        })();
     </script>
 </body>
 </html>

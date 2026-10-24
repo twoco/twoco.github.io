@@ -7,76 +7,7 @@ const CONFIG = {
     SUPABASE_URL: 'https://wjkhkxtdlrphouwsnicg.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqa2hreHRkbHJwaG91d3NuaWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzEzOTYsImV4cCI6MjEwNzQ0NzM5Nn0.YNjsDNU4yu1F_m40111fsZgjCBkDCbUrwarnKH8EVyI',
 
-    // Facultés du site. Chaque faculté a des années, et chaque année ses matières
-    // (liste simple, ou groupes par semestre).
-    // Pour ajouter une faculté : copie un bloc, change la clé (ex: bio) et le contenu.
-    // Pour ajouter une année : copie le bloc "'1': {...}" dans annees et change la clé ('2').
-    FACULTES: {
-        hec: {
-            nom: 'HEC',
-            sous_titre: 'Hautes études commerciales',
-            annees: {
-                '1': {
-                    nom: '1ère année',
-                    matieres: {
-                        'Premier semestre': [
-                            'Modèles informatiques',
-                            'Statistique',
-                            'Mathématiques I',
-                            'Comptabilité financière (BSc)',
-                            'Economie I',
-                            "Introduction au management et à l'éthique des affaires"
-                        ],
-                        'Deuxième semestre': [
-                            'Introduction à la programmation',
-                            'Comportement organisationnel',
-                            'Régression et analyse causale',
-                            "Droit et conformité de l'entreprise",
-                            'Mathématiques II',
-                            'Economie II'
-                        ]
-                    }
-                }
-            }
-        },
-        droit: {
-            nom: 'Droit',
-            sous_titre: 'Faculté de droit',
-            annees: {
-                '1': {
-                    nom: '1ère année',
-                    // EXEMPLES à remplacer par les vrais cours
-                    matieres: [
-                        'Introduction au droit',
-                        'Droit constitutionnel',
-                        'Droit des personnes',
-                        'Droit pénal',
-                        'Droit romain',
-                        'Histoire du droit'
-                    ]
-                }
-            }
-        },
-        bio: {
-            nom: 'SV',
-            sous_titre: 'Faculté des sciences de la vie',
-            annees: {
-                '1': {
-                    nom: '1ère année',
-                    // EXEMPLES à remplacer par les vrais cours
-                    matieres: [
-                        'Analyse',
-                        'Algèbre linéaire',
-                        'Physique générale',
-                        'Chimie générale',
-                        'Chimie organique',
-                        'Biologie générale',
-                        'Programmation'
-                    ]
-                }
-            }
-        }
-    },
+    // Les facultés et les matières se gèrent depuis la page admin (stockées dans Supabase).
 
     // Lieux proposés dans le formulairee
     LIEUX: [
