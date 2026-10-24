@@ -191,7 +191,7 @@
             faculteCourante = cle;
             const { data, error } = await db
                 .from('tuteurs')
-                .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie')
+                .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie, fondateur')
                 .eq('status', 'valide').eq('faculte', cle).eq('annee', a);
 
             if (error) {
@@ -211,13 +211,26 @@
             rendreListe();
         }
 
+        // Tri « Recommandé » : chaque profil fondateur est placé au hasard entre la 3e et la 6e place
+        // (nouvelle place à chaque affichage ; à la fin de la liste s'il y a moins de tuteurs)
+        function placerFondateurs(tuteurs) {
+            const resultat = tuteurs.filter(t => !t.fondateur);
+            const libres = [2, 3, 4, 5];
+            const places = tuteurs.filter(t => t.fondateur).map(t => ({ t,
+                place: libres.length ? libres.splice(Math.floor(Math.random() * libres.length), 1)[0] : Infinity }));
+            // Insérer de la plus petite place à la plus grande : un ajout ne décale jamais un fondateur déjà placé
+            places.sort((x, y) => x.place - y.place).forEach(({ t, place }) => resultat.splice(Math.min(place, resultat.length), 0, t));
+            return resultat;
+        }
+
         function rendreListe() {
             const container = $('tuteurs-container');
             if (liste.length === 0) {
                 container.innerHTML = '<p class="msg">Aucun tuteur pour le moment. Sois le premier à t\'inscrire !</p>';
                 return;
             }
-            const visibles = liste.filter(t => !filtre || matieresDe(t).includes(filtre)).sort(TRIS[$('tri').value] || recommande);
+            let visibles = liste.filter(t => !filtre || matieresDe(t).includes(filtre)).sort(TRIS[$('tri').value] || recommande);
+            if ($('tri').value === 'recommande') visibles = placerFondateurs(visibles);
             container.innerHTML = visibles.map(t => {
                 const tags = matieresDe(t).map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
                 const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');

@@ -77,7 +77,7 @@
         .tuteur-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 14px; display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .tuteur-card h3 { margin: 0 0 6px; }
         .tuteur-card p { margin: 3px 0; font-size: 0.92rem; }
-        .actions { display: flex; gap: 8px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; }
         .btn-v { background: #dcfce7; color: #166534; }
         .btn-n { background: #f1f5f9; color: #334155; }
         .btn-d { background: #fee2e2; color: #991b1b; }
@@ -225,7 +225,7 @@
                         <p><strong>Matières :</strong> ${esc(t.matieres)}</p>
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
-                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? '⭐ <strong>Vérifié</strong>' : '🌱 Nouveau'}</p>` : ''}
+                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? '⭐ <strong>Vérifié</strong>' : '🌱 Nouveau'}${t.fondateur ? ' | 📌 <strong>Fondateur</strong> (3e à 6e place)' : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
@@ -262,6 +262,9 @@
                     t.badge_verifie
                         ? { cls: 'btn-n', action: 'badge', label: 'Retirer ⭐' }
                         : { cls: 'btn-v', action: 'badge', label: '⭐ Vérifié' },
+                    t.fondateur
+                        ? { cls: 'btn-n', action: 'fondateur', label: 'Retirer 📌' }
+                        : { cls: 'btn-n', action: 'fondateur', label: '📌 Fondateur' },
                     { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Supprimer' }])).join('')
                 : '<p class="vide">Aucun profil publié.</p>';
@@ -277,9 +280,10 @@
             if (action === 'supprimer') {
                 if (!confirm('Supprimer définitivement ce profil ?')) return;
                 resultat = await db.from('tuteurs').delete().eq('id', id).select();
-            } else if (action === 'badge') {
-                const t = fiches.find(x => String(x.id) === id);
-                resultat = await db.from('tuteurs').update({ badge_verifie: !(t && t.badge_verifie) }).eq('id', id).select();
+            } else if (action === 'badge' || action === 'fondateur') {
+                const t = fiches.find(x => String(x.id) === id) || {};
+                const champ = action === 'badge' ? 'badge_verifie' : 'fondateur';
+                resultat = await db.from('tuteurs').update({ [champ]: !t[champ] }).eq('id', id).select();
             } else {
                 const statut = action === 'valider' ? 'valide' : 'en_attente';
                 resultat = await db.from('tuteurs').update({ status: statut }).eq('id', id).select();
@@ -299,6 +303,7 @@
                     const anciens = fiches.filter(t => t.whatsapp === tel && String(t.id) !== id && t.status === 'valide');
                     if (anciens.length) await db.from('tuteurs').update({
                         badge_verifie: anciens.some(t => t.badge_verifie),
+                        fondateur: anciens.some(t => t.fondateur),
                         compteur_clics: Math.max(...anciens.map(t => t.compteur_clics || 0))
                     }).eq('id', id);
                     const { error } = await db.from('tuteurs').delete().eq('whatsapp', tel).neq('id', id);
