@@ -82,6 +82,8 @@
         .btn-n { background: #f1f5f9; color: #334155; }
         .btn-d { background: #fee2e2; color: #991b1b; }
         .vide { color: #64748b; }
+        .modif { width: 100%; background: #eff6ff; color: #1e3a8a; border-radius: 10px; padding: 10px 12px; font-size: 0.85rem; line-height: 1.5; }
+        .modif.alerte { background: #fee2e2; color: #991b1b; }
         .bloc { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 14px; }
         .bloc h3 { margin: 0; }
         .bloc-tete { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
@@ -216,7 +218,7 @@
             montrerLogin();
         });
 
-        function carte(t, actions) {
+        function carte(t, actions, note = '') {
             return `
                 <div class="tuteur-card">
                     <div>
@@ -233,6 +235,7 @@
                     <div class="actions">${actions.map(a =>
                         `<button type="button" class="${a.cls}" data-action="${a.action}" data-id="${esc(t.id)}">${a.label}</button>`
                     ).join('')}</div>
+                    ${note}
                 </div>`;
         }
 
@@ -248,13 +251,28 @@
             }
             const attente = data.filter(t => t.status === 'en_attente');
             // Une candidature dont le numéro existe déjà = une modification de profil
-            const dejaPublie = t => data.some(v => v.id !== t.id && v.whatsapp === t.whatsapp && v.status === 'valide');
+            const publie = t => data.find(v => v.id !== t.id && v.whatsapp === t.whatsapp && v.status === 'valide');
+            const dejaPublie = t => !!publie(t);
+            // Modification de profil : l'e-mail de confirmation doit venir de l'adresse déjà enregistrée
+            const avertissement = t => {
+                const ancien = publie(t);
+                if (!ancien) return '';
+                const memes = (ancien.email || '').toLowerCase() === (t.email || '').toLowerCase();
+                return `<div class="modif ${memes ? '' : 'alerte'}">
+                    <strong>Modification du profil publié de ${esc(ancien.prenom)} ${esc(ancien.nom)}</strong><br>
+                    E-mail enregistré : ${esc(ancien.email || '(aucun)')}<br>
+                    E-mail de la demande : ${esc(t.email || '(aucun)')}<br>
+                    ${memes
+                        ? 'Valide seulement si tu as reçu la confirmation depuis cette adresse.'
+                        : '⚠️ Adresses différentes : quelqu\'un essaie peut-être de prendre la place de ce tuteur. Ne valide que si la confirmation vient de l\'e-mail enregistré.'}
+                </div>`;
+            };
             const valides = data.filter(t => t.status === 'valide');
 
             $('liste-attente').innerHTML = attente.length
                 ? attente.map(t => carte(t, [
                     { cls: 'btn-v', action: 'valider', label: dejaPublie(t) ? 'Valider (remplace l\'ancien profil)' : 'Valider' },
-                    { cls: 'btn-d', action: 'supprimer', label: 'Refuser' }])).join('')
+                    { cls: 'btn-d', action: 'supprimer', label: 'Refuser' }], avertissement(t))).join('')
                 : '<p class="vide">Aucune candidature en attente.</p>';
 
             $('liste-valides').innerHTML = valides.length
