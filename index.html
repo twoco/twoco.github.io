@@ -8,6 +8,7 @@
     <script src="vendor/supabase.js"></script>
     <script src="config.js?v=20261024"></script>
     <script src="catalogue.js?v=20261024"></script>
+    <script src="suivi.js?v=20261024"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
@@ -93,8 +94,8 @@
                 <label class="tri">Trier par
                     <select id="tri">
                         <option value="recommande">Recommandé</option>
-                        <option value="verifies">Vérifiés d'abord</option>
-                        <option value="nouveaux">Nouveaux d'abord</option>
+                        <option value="verifies">Vérifiés</option>
+                        <option value="nouveaux">Nouveaux</option>
                     </select>
                 </label>
             </div>
@@ -169,7 +170,7 @@
         }
 
         // Liste des tuteurs d'une faculté/année, avec filtre par matière et tri
-        let liste = [], filtre = '';
+        let liste = [], filtre = '', faculteCourante = '';
         const matieresDe = t => String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean);
         const INFO_VERIFIE = 'Un cours a déjà été donné par ce tuteur via Twoco.';
 
@@ -187,6 +188,7 @@
             container.innerHTML = '<p class="msg">Chargement des tuteurs...</p>';
             $('filtres').innerHTML = '';
             filtre = '';
+            faculteCourante = cle;
             const { data, error } = await db
                 .from('tuteurs')
                 .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie')
@@ -246,10 +248,17 @@
             const btn = e.target.closest('button[data-matiere]');
             if (!btn) return;
             filtre = btn.dataset.matiere;
+            if (filtre) enregistrer(db, 'clic_matiere', { faculte: faculteCourante, matiere: filtre });
             document.querySelectorAll('#filtres .filtre').forEach(b => b.classList.toggle('actif', b === btn));
             rendreListe();
         });
         $('tri').addEventListener('change', rendreListe);
+
+        // Clic sur une carte de faculté (accueil)
+        $('vue-facs').addEventListener('click', (e) => {
+            const carte = e.target.closest('a.fac-card');
+            if (carte) enregistrer(db, 'clic_faculte', { faculte: carte.getAttribute('href').slice(1) });
+        });
 
         // Bulle ⓘ : s'ouvre et se ferme au clic (ou au toucher) ; un clic ailleurs la ferme
         function basculerInfo(info) {
@@ -266,7 +275,9 @@
         // Chaque clic sur WhatsApp compte +1 pour ce tuteur (le lien s'ouvre quand même tout de suite)
         $('tuteurs-container').addEventListener('click', (e) => {
             const lien = e.target.closest('a.btn-whatsapp[data-id]');
-            if (lien) db.rpc('compter_clic', { tuteur_id: lien.dataset.id }).then(({ error }) => { if (error) console.error(error); });
+            if (lien)
+                db.rpc('clic_whatsapp', { p_tuteur: lien.dataset.id, p_matiere: filtre || null })
+                    .then(({ error }) => { if (error) console.error(error); });
         });
 
         function montrer(vue, titre, sous, retourHref, retourTexte, insHref) {
@@ -302,6 +313,7 @@
         }
 
         window.addEventListener('hashchange', () => route(true));
+        enregistrer(db, 'visite', { page: 'accueil' });
         (async () => {
             try {
                 FAC = arbreCatalogue(await chargerCatalogue(db));

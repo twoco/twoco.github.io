@@ -29,8 +29,38 @@
             .onglets { display: flex; gap: 8px; position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 12px 0; }
             .onglets button { flex: 1; background: #e2e8f0; color: var(--dark); }
             .onglets button.actif { background: var(--blue); color: white; }
-            .colonne:not(.visible) { display: none; }
+            .panneau:not(.visible) { display: none; }
         }
+
+        /* Statistiques : chiffres clés + graphique en colonnes (une seule série à la fois) */
+        .stats { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 24px; }
+        .stats h2 { margin: 0 0 14px; }
+        .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+        .tuile { background: var(--bg); border-radius: 12px; padding: 12px 14px; }
+        .tuile .val { font-size: 1.6rem; font-weight: 800; }
+        .tuile .lib { font-size: 0.8rem; color: #64748b; }
+        .commandes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin: 18px 0 12px; }
+        .choix-mesure { font: inherit; font-size: 0.9rem; font-weight: 600; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; }
+        .tuiles-titre { margin: 0 0 10px; font-size: 0.85rem; color: #64748b; }
+        .segments { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; }
+        .segments button { padding: 7px 12px; font-size: 0.85rem; background: transparent; color: #334155; border-radius: 8px; }
+        .segments button.actif { background: white; color: var(--dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .graph-titre { font-weight: 700; margin: 0 0 8px; font-size: 0.95rem; }
+        .graph { position: relative; display: grid; grid-template-columns: 34px 1fr; height: 200px; }
+        .graph-y { position: relative; font-size: 0.75rem; color: #64748b; }
+        .graph-y span { position: absolute; right: 6px; transform: translateY(-50%); }
+        .graph-zone { position: relative; border-bottom: 1px solid #cbd5e1; }
+        .graph-zone .grille { position: absolute; left: 0; right: 0; border-top: 1px solid #f1f5f9; }
+        .barres { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; }
+        .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; position: relative; }
+        .barre { width: 100%; max-width: 24px; background: var(--blue); border-radius: 4px 4px 0 0; min-height: 0; }
+        .col:hover .barre, .col.actif .barre { background: #1d4ed8; }
+        .col .x { position: absolute; top: calc(100% + 4px); font-size: 0.7rem; color: #64748b; white-space: nowrap; }
+        .graph-pied { height: 22px; }
+        .bulle { position: absolute; background: var(--dark); color: white; font-size: 0.8rem; padding: 6px 10px; border-radius: 8px; pointer-events: none; white-space: nowrap; transform: translate(-50%, -100%); z-index: 5; }
+        .nb-clics { font-size: 0.75rem; font-weight: 700; color: #475569; background: white; border-radius: 999px; padding: 1px 7px; }
+        .titre-ligne { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+        .titre-ligne h2 { margin: 36px 0 14px; }
         .login { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .login h2 { margin-top: 0; }
         input { width: 100%; padding: 12px; margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font: inherit; }
@@ -84,17 +114,42 @@
         <div class="wrap">
             <div class="onglets">
                 <button type="button" class="actif" data-onglet="col-tuteurs">Tuteurs</button>
-                <button type="button" data-onglet="col-matieres">Facultés et matières</button>
+                <button type="button" data-onglet="col-matieres">Matières</button>
+                <button type="button" data-onglet="stats">Statistiques</button>
             </div>
+            <section class="stats panneau" id="stats">
+                <h2>Statistiques</h2>
+                <p class="tuiles-titre">7 derniers jours</p>
+                <div class="tuiles" id="tuiles"><p class="vide">Chargement...</p></div>
+                <div class="commandes">
+                    <select id="choix-mesure" class="choix-mesure" aria-label="Que mesurer">
+                        <option value="visite">Visites du site</option>
+                        <option value="clic_faculte">Clics sur les facultés</option>
+                        <option value="clic_matiere">Clics sur les matières</option>
+                        <option value="clic_whatsapp">Clics WhatsApp</option>
+                        <option value="visite_inscription">Visites « Devenir tuteur »</option>
+                        <option value="candidature">Candidatures envoyées</option>
+                    </select>
+                    <div class="segments" id="choix-periode">
+                        <button type="button" class="actif" data-periode="jour">Par jour</button>
+                        <button type="button" data-periode="semaine">Par semaine</button>
+                    </div>
+                </div>
+                <p class="graph-titre" id="graph-titre"></p>
+                <div id="graph"></div>
+            </section>
             <div class="colonnes">
-                <div class="colonne visible" id="col-tuteurs">
+                <div class="colonne panneau visible" id="col-tuteurs">
                     <h2 class="section">En attente de validation</h2>
                     <div id="liste-attente"></div>
-                    <h2 class="section">Profils publiés</h2>
+                    <div class="titre-ligne">
+                        <h2>Profils publiés</h2>
+                        <button type="button" class="btn-n petit" id="copier-emails">Copier tous les e-mails</button>
+                    </div>
                     <div id="liste-valides"></div>
                 </div>
 
-                <div class="colonne" id="col-matieres">
+                <div class="colonne panneau" id="col-matieres">
                     <h2 class="section">Facultés et matières</h2>
                     <p class="vide">Les changements apparaissent tout de suite sur le site.</p>
                     <div id="catalogue"></div>
@@ -119,7 +174,7 @@
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
         function montrerLogin() { $('panel').hidden = true; $('login').hidden = false; }
-        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); chargerCatalogueAdmin(); }
+        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; charger(); chargerCatalogueAdmin(); chargerStats(); }
 
         $('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -150,7 +205,7 @@
                         ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? '⭐ <strong>Vérifié</strong>' : '🌱 Nouveau'}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
-                        ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées le ${esc(new Date(t.cgu_date).toLocaleString('fr-CH'))}</p>` : ''}
+                        ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
                     </div>
                     <div class="actions">${actions.map(a =>
                         `<button type="button" class="${a.cls}" data-action="${a.action}" data-id="${esc(t.id)}">${a.label}</button>`
@@ -230,16 +285,133 @@
             charger();
         });
 
-        // Sur téléphone : un onglet par colonne
+        // ---------- Copier les e-mails des tuteurs publiés (pour l'e-mail groupé en Cci)
+        $('copier-emails').addEventListener('click', async () => {
+            const emails = [...new Set(fiches.filter(t => t.status === 'valide' && t.email).map(t => t.email))];
+            if (!emails.length) return alert('Aucun e-mail à copier.');
+            try {
+                await navigator.clipboard.writeText(emails.join(', '));
+                alert(`${emails.length} e-mail(s) copié(s). Colle-les dans le champ « Cci » de Gmail.`);
+            } catch (e) {
+                prompt('Copie ces e-mails :', emails.join(', '));
+            }
+        });
+
+        // ---------- Statistiques (fonctions Supabase stats_par_jour et stats_totaux)
+        let parJour = {};      // { 'AAAA-MM-JJ': { visite: n, clic_whatsapp: n, clic_matiere: n } }
+        let mesure = 'visite', periode = 'jour';
+        const NOMS = {
+            visite: 'Visites du site', clic_faculte: 'Clics sur les facultés', clic_matiere: 'Clics sur les matières',
+            clic_whatsapp: 'Clics WhatsApp', visite_inscription: 'Visites « Devenir tuteur »', candidature: 'Candidatures envoyées'
+        };
+        const UNITES = { visite: 'visites', clic_faculte: 'clics', clic_matiere: 'clics', clic_whatsapp: 'clics', visite_inscription: 'visites', candidature: 'candidatures' };
+        const cleJour = d => d.toLocaleDateString('sv-SE');
+        const decaler = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+        const somme = (type, jours) => {
+            let n = 0;
+            for (let i = 0; i < jours; i++) n += (parJour[cleJour(decaler(new Date(), -i))] || {})[type] || 0;
+            return n;
+        };
+
+        async function chargerStats() {
+            const { data, error } = await db.rpc('stats_par_jour', { nb_jours: 90 });
+            if (error) {
+                console.error(error);
+                $('tuiles').innerHTML = '<p class="vide">Impossible de charger les statistiques.</p>';
+                return;
+            }
+            parJour = {};
+            data.forEach(r => { (parJour[r.jour] = parJour[r.jour] || {})[r.type] = Number(r.total); });
+            $('tuiles').innerHTML = Object.keys(NOMS).map(type =>
+                `<div class="tuile"><div class="val">${somme(type, 7)}</div><div class="lib">${NOMS[type]}</div></div>`).join('');
+            dessinerGraphique();
+        }
+
+        // 30 derniers jours, ou 12 dernières semaines (du lundi au dimanche)
+        function serie() {
+            const auj = new Date();
+            if (periode === 'jour') return Array.from({ length: 30 }, (_, i) => {
+                const d = decaler(auj, i - 29);
+                return { d, etiquette: d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }),
+                    detail: d.toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric', month: 'short' }),
+                    valeur: (parJour[cleJour(d)] || {})[mesure] || 0 };
+            });
+            const lundi = decaler(auj, -((auj.getDay() + 6) % 7));
+            return Array.from({ length: 12 }, (_, i) => {
+                const debut = decaler(lundi, (i - 11) * 7);
+                let valeur = 0;
+                for (let j = 0; j < 7; j++) valeur += (parJour[cleJour(decaler(debut, j))] || {})[mesure] || 0;
+                const etiquette = debut.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' });
+                return { d: debut, etiquette, detail: 'Semaine du ' + etiquette, valeur };
+            });
+        }
+
+        function dessinerGraphique() {
+            const s = serie();
+            const max = Math.max(...s.map(p => p.valeur));
+            const haut = max <= 4 ? 4 : Math.ceil(max / 4) * 4;   // graduations rondes : 0, 1/2, max
+            const pas = periode === 'jour' ? 5 : 2;                // une étiquette sur 5 jours / 2 semaines
+            $('graph-titre').textContent = `${NOMS[mesure]} ${periode === 'jour' ? 'par jour (30 derniers jours)' : 'par semaine (12 dernières semaines)'}`;
+            $('graph').innerHTML = `
+                <div class="graph">
+                    <div class="graph-y">${[haut, haut / 2, 0].map((v, i) => `<span style="top:${i * 50}%">${v}</span>`).join('')}</div>
+                    <div class="graph-zone">
+                        <div class="grille" style="top:0"></div><div class="grille" style="top:50%"></div>
+                        <div class="barres">${s.map((p, i) => `
+                            <div class="col" data-info="${esc(p.detail)} : ${p.valeur} ${UNITES[mesure]}">
+                                <div class="barre" style="height:${(p.valeur / haut) * 100}%"></div>
+                                ${(s.length - 1 - i) % pas === 0 ? `<span class="x">${esc(p.etiquette)}</span>` : ''}
+                            </div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="graph-pied"></div>`;
+        }
+
+        // Bulle au survol (ordinateur) ou au toucher (téléphone) sur une colonne du graphique
+        function montrerBulle(col) {
+            document.querySelectorAll('.bulle').forEach(b => b.remove());
+            document.querySelectorAll('.col.actif').forEach(c => c.classList.remove('actif'));
+            if (!col) return;
+            col.classList.add('actif');
+            const zone = col.closest('.graph-zone'), barre = col.querySelector('.barre');
+            const bulle = document.createElement('div');
+            bulle.className = 'bulle';
+            bulle.textContent = col.dataset.info;
+            const z = zone.getBoundingClientRect(), b = barre.getBoundingClientRect();
+            const x = Math.min(Math.max(b.left + b.width / 2 - z.left, 70), z.width - 70);
+            bulle.style.left = x + 'px';
+            bulle.style.top = (b.top - z.top - 6) + 'px';
+            zone.appendChild(bulle);
+        }
+        $('graph').addEventListener('mouseover', (e) => montrerBulle(e.target.closest('.col')));
+        $('graph').addEventListener('mouseleave', () => montrerBulle(null));
+        $('graph').addEventListener('click', (e) => montrerBulle(e.target.closest('.col')));
+
+        $('choix-mesure').addEventListener('change', () => {
+            mesure = $('choix-mesure').value;
+            dessinerGraphique();
+        });
+        $('choix-periode').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-periode]');
+            if (!btn) return;
+            periode = btn.dataset.periode;
+            $('choix-periode').querySelectorAll('button').forEach(b => b.classList.toggle('actif', b === btn));
+            dessinerGraphique();
+        });
+
+        // Sur téléphone : un onglet par partie (tuteurs, matières, statistiques)
         document.querySelector('.onglets').addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-onglet]');
             if (!btn) return;
             document.querySelectorAll('.onglets button').forEach(b => b.classList.toggle('actif', b === btn));
-            document.querySelectorAll('.colonne').forEach(c => c.classList.toggle('visible', c.id === btn.dataset.onglet));
+            document.querySelectorAll('.panneau').forEach(c => c.classList.toggle('visible', c.id === btn.dataset.onglet));
         });
 
         // ---------- Facultés et matières (tables Supabase "facultes" et "matieres")
         let cat = { facultes: [], matieres: [] };
+        let clicsFacultes = {}; // faculte -> nombre de clics sur sa carte (accueil)
+        let clicsMatieres = {}; // "faculte|matiere" -> nombre de clics sur le filtre de cette matière
 
         // "Sciences de la vie" -> "sciencesdelavie" (sert dans l'adresse des pages et dans les profils)
         function nouvelleCle(nom) {
@@ -251,7 +423,14 @@
 
         async function chargerCatalogueAdmin() {
             try {
-                cat = await chargerCatalogue(db);
+                const [c, s] = await Promise.all([chargerCatalogue(db), db.rpc('stats_totaux')]);
+                cat = c;
+                clicsFacultes = {};
+                clicsMatieres = {};
+                (s.data || []).forEach(r => {
+                    if (r.type === 'clic_faculte') clicsFacultes[r.faculte] = (clicsFacultes[r.faculte] || 0) + Number(r.total);
+                    if (r.type === 'clic_matiere') clicsMatieres[r.faculte + '|' + r.matiere] = (clicsMatieres[r.faculte + '|' + r.matiere] || 0) + Number(r.total);
+                });
             } catch (e) {
                 console.error(e);
                 $('catalogue').innerHTML = '<p class="vide">Impossible de charger les facultés.</p>';
@@ -273,14 +452,14 @@
                         Object.entries(parSem).map(([sem, liste]) =>
                             (sem ? `<p class="sem">${esc(sem)}</p>` : '') +
                             `<div class="puces">${liste.map(m =>
-                                `<span class="puce">${esc(m.nom)}<button type="button" data-cat="suppr-mat" data-id="${m.id}" title="Supprimer">✕</button></span>`
+                                `<span class="puce">${esc(m.nom)}<span class="nb-clics" title="Clics sur le filtre de cette matière">${clicsMatieres[f.cle + '|' + m.nom] || 0}</span><button type="button" data-cat="suppr-mat" data-id="${m.id}" title="Supprimer">✕</button></span>`
                             ).join('')}</div>`).join('');
                 }).join('') : '<p class="vide">Aucune matière : cette faculté n\'apparaît pas encore sur le site.</p>';
                 return `
                     <div class="bloc">
                         <div class="bloc-tete">
                             <div>
-                                <h3>${esc(f.nom)}</h3>
+                                <h3>${esc(f.nom)} <span class="nb-clics" title="Clics sur la carte de cette faculté (accueil)">${clicsFacultes[f.cle] || 0} clics</span></h3>
                                 <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)}</p>
                             </div>
                             <button type="button" class="btn-d petit" data-cat="suppr-fac" data-cle="${esc(f.cle)}">Supprimer la faculté</button>

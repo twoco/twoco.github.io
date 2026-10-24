@@ -8,6 +8,7 @@
     <script src="vendor/supabase.js"></script>
     <script src="config.js?v=20261024"></script>
     <script src="catalogue.js?v=20261024"></script>
+    <script src="suivi.js?v=20261024"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
@@ -173,6 +174,7 @@
         $('fac-box').addEventListener('change', afficherAnnees);
         $('annee-box').addEventListener('change', afficherMatieres);
 
+        enregistrer(db, 'visite_inscription', { page: 'inscription' });
         (async () => {
             try {
                 FAC = arbreCatalogue(await chargerCatalogue(db));
@@ -270,6 +272,7 @@
             }
             $('formulaire').style.display = 'none';
             $('succes').style.display = 'block';
+            enregistrer(db, 'candidature', { faculte });
         });
     </script>
 </body>
