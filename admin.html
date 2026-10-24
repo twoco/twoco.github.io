@@ -147,6 +147,7 @@
                         <p><strong>Matières :</strong> ${esc(t.matieres)}</p>
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
+                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? '⭐ <strong>Vérifié</strong>' : '🌱 Nouveau'}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées le ${esc(new Date(t.cgu_date).toLocaleString('fr-CH'))}</p>` : ''}
@@ -180,6 +181,9 @@
 
             $('liste-valides').innerHTML = valides.length
                 ? valides.map(t => carte(t, [
+                    t.badge_verifie
+                        ? { cls: 'btn-n', action: 'badge', label: 'Retirer ⭐' }
+                        : { cls: 'btn-v', action: 'badge', label: '⭐ Vérifié' },
                     { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Supprimer' }])).join('')
                 : '<p class="vide">Aucun profil publié.</p>';
@@ -195,6 +199,9 @@
             if (action === 'supprimer') {
                 if (!confirm('Supprimer définitivement ce profil ?')) return;
                 resultat = await db.from('tuteurs').delete().eq('id', id).select();
+            } else if (action === 'badge') {
+                const t = fiches.find(x => String(x.id) === id);
+                resultat = await db.from('tuteurs').update({ badge_verifie: !(t && t.badge_verifie) }).eq('id', id).select();
             } else {
                 const statut = action === 'valider' ? 'valide' : 'en_attente';
                 resultat = await db.from('tuteurs').update({ status: statut }).eq('id', id).select();
@@ -210,6 +217,12 @@
             if (action === 'valider') {
                 const tel = (fiches.find(t => String(t.id) === id) || {}).whatsapp;
                 if (tel) {
+                    // Le nouveau profil garde le badge et les clics de l'ancien
+                    const anciens = fiches.filter(t => t.whatsapp === tel && String(t.id) !== id && t.status === 'valide');
+                    if (anciens.length) await db.from('tuteurs').update({
+                        badge_verifie: anciens.some(t => t.badge_verifie),
+                        compteur_clics: Math.max(...anciens.map(t => t.compteur_clics || 0))
+                    }).eq('id', id);
                     const { error } = await db.from('tuteurs').delete().eq('whatsapp', tel).neq('id', id);
                     if (error) alert('Profil validé, mais l\'ancien profil n\'a pas pu être supprimé : supprime-le à la main.');
                 }
