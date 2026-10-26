@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Devenir tuteur - TWOCO</title>
-    <link href="fonts/inter.css" rel="stylesheet">
-    <script src="vendor/supabase.js"></script>
-    <script src="config.js?v=20261024"></script>
-    <script src="catalogue.js?v=20261024"></script>
-    <script src="suivi.js?v=20261024"></script>
+    <link href="fonts/inter.css?v=dev" rel="stylesheet">
+    <script src="vendor/supabase.js?v=dev"></script>
+    <script src="config.js?v=dev"></script>
+    <script src="catalogue.js?v=dev"></script>
+    <script src="suivi.js?v=dev"></script>
     <style>
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
@@ -212,6 +212,8 @@
             return (n.length >= 11 && n.length <= 15) ? n : null;
         }
 
+        const ouverture = Date.now();
+
         function montrerErreur(msg) {
             const e = $('erreur');
             e.textContent = msg;
@@ -222,6 +224,8 @@
             ev.preventDefault();
             $('erreur').style.display = 'none';
             if ($('site').value) return;
+            // Un humain met plus de 3 secondes à remplir le formulaire ; un robot non
+            if (Date.now() - ouverture < 3000) return montrerErreur('Prends le temps de vérifier tes informations, puis renvoie le formulaire.');
 
             const prenom = $('prenom').value.trim();
             const nom = $('nom').value.trim();
@@ -265,7 +269,9 @@
 
             if (error) {
                 console.error(error);
-                montrerErreur('L\'envoi a échoué. Réessaie dans un instant.');
+                // Messages des protections anti-spam de Supabase (commencent par « TWOCO: »)
+                const msg = String(error.message || '');
+                montrerErreur(msg.startsWith('TWOCO: ') ? msg.slice(7) : 'L\'envoi a échoué. Réessaie dans un instant.');
                 btn.disabled = false;
                 btn.textContent = 'Envoyer ma candidature';
                 return;
