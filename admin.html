@@ -41,7 +41,7 @@
         .fenetre p { font-size: 0.9rem; color: #334155; margin: 0 0 6px; }
         .fenetre .boutons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
         .paiements { margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
-        .ajout-paiement { grid-template-columns: 2fr 1fr 1fr 1fr; border-top: none; padding-top: 0; }
+        .ajout-paiement { grid-template-columns: 2fr 1fr 1fr; border-top: none; padding-top: 0; }
         .ajout-paiement .large { grid-column: 1 / -1; }
         .ajout select { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #e2e8f0; border-radius: 10px; font: inherit; background: white; box-sizing: border-box; }
         .table-paiements { overflow-x: auto; margin-top: 16px; }
@@ -171,14 +171,13 @@
                     <div class="tuiles" id="tuiles-paiements"></div>
                     <form class="ajout ajout-paiement admin-seul" id="form-paiement">
                         <div><label for="pay-tuteur">Tuteur</label><select id="pay-tuteur" required></select></div>
-                        <div><label for="pay-eleves">Nouveaux élèves</label><input id="pay-eleves" type="number" min="1" step="1" value="1" required></div>
                         <div><label for="pay-montant">Montant (CHF)</label><input id="pay-montant" type="number" min="0.05" step="0.05" value="5" required></div>
                         <div><label for="pay-date">Date</label><input id="pay-date" type="date" required></div>
                         <div class="large"><label for="pay-remarque">Remarque <span class="vide">(facultatif)</span></label><input id="pay-remarque" maxlength="120" placeholder="ex : 2e élève, Statistique"></div>
                         <button type="submit">Ajouter un paiement</button>
                     </form>
                     <div class="table-paiements"><table>
-                        <thead><tr><th>Date</th><th>Tuteur</th><th>Élèves</th><th>Montant</th><th>Remarque</th><th></th></tr></thead>
+                        <thead><tr><th>Date</th><th>Tuteur</th><th>Montant</th><th>Remarque</th><th></th></tr></thead>
                         <tbody id="liste-paiements"></tbody>
                     </table></div>
                 </div>
@@ -289,7 +288,7 @@
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
                         ${t.langues ? `<p><strong>Langues :</strong> ${esc(t.langues)}</p>` : ''}
-                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.nb_eleves ? `★ <strong>${esc(t.nb_eleves)} élève${t.nb_eleves > 1 ? 's' : ''}</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}</p>` : ''}
+                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
@@ -341,7 +340,8 @@
 
             $('liste-valides').innerHTML = valides.length
                 ? valides.map(t => carte(t, !estAdmin() ? [] : [
-                    { cls: 'btn-v', action: 'paiement', label: '💰 Paiement reçu' },
+                    // Un seul paiement par tuteur : le bouton disparaît une fois le badge « Vérifié » obtenu
+                    ...(t.badge_verifie ? [] : [{ cls: 'btn-v', action: 'paiement', label: '💰 Paiement reçu' }]),
                     // 📌 Fondateur -> 📌 Cofondateur -> Retirer 📌
                     { cls: 'btn-n', action: 'fondateur',
                       label: !t.fondateur ? '📌 Fondateur' : t.fondateur === 'fondateur' ? '📌 Cofondateur' : 'Retirer 📌' },
@@ -359,9 +359,8 @@
             const tuteur = fiches.find(x => String(x.id) === id) || {};
 
             if (action === 'paiement') {
-                const n = tuteur.nb_eleves || 0;
-                if (confirm(`Enregistrer un paiement TWINT de ${MONTANT_CONTRIBUTION} CHF de ${tuteur.prenom} ${tuteur.nom}, reçu aujourd'hui ?\n\nSon étoile passera de ${n} à ${n + 1} élève(s)` + (n ? '.' : ' et il recevra le badge « Vérifié ».')))
-                    await enregistrerPaiement(tuteur, MONTANT_CONTRIBUTION, aujourdhui(), '', 1);
+                if (confirm(`Enregistrer le paiement TWINT de ${MONTANT_CONTRIBUTION} CHF de ${tuteur.prenom} ${tuteur.nom}, reçu aujourd'hui ?\n\nIl recevra le badge « Vérifié ».`))
+                    await enregistrerPaiement(tuteur, MONTANT_CONTRIBUTION, aujourdhui(), '');
                 return;
             }
 
@@ -411,7 +410,7 @@
             const { data, error } = await db.from('paiements').select('*').order('date', { ascending: false }).order('id', { ascending: false });
             if (error) {
                 console.error(error);
-                $('liste-paiements').innerHTML = '<tr><td colspan="6" class="vide">Impossible de charger les paiements.</td></tr>';
+                $('liste-paiements').innerHTML = '<tr><td colspan="5" class="vide">Impossible de charger les paiements.</td></tr>';
                 return;
             }
             paiements = data;
@@ -426,17 +425,16 @@
                 <tr>
                     <td>${esc(new Date(p.date + 'T12:00').toLocaleDateString('fr-CH'))}</td>
                     <td>${esc(p.tuteur_nom)}</td>
-                    <td>${esc(p.eleves || 1)}</td>
                     <td class="montant">${esc(chf(p.montant))}</td>
                     <td>${esc(p.remarque || '')}</td>
                     <td>${estAdmin() ? `<button type="button" data-paiement="${p.id}" title="Supprimer ce paiement">✕</button>` : ''}</td>
-                </tr>`).join('') : '<tr><td colspan="6" class="vide">Aucun paiement enregistré.</td></tr>';
+                </tr>`).join('') : '<tr><td colspan="5" class="vide">Aucun paiement enregistré.</td></tr>';
         }
 
-        // Chaque paiement ajoute ses élèves au compteur du tuteur (fait par Supabase, voir maj_nb_eleves)
-        async function enregistrerPaiement(t, montant, date, remarque, eleves) {
+        // Le premier paiement d'un tuteur lui donne le badge « Vérifié » (fait par Supabase, voir maj_nb_eleves)
+        async function enregistrerPaiement(t, montant, date, remarque) {
             const { data, error } = await db.from('paiements').insert([{
-                tuteur_id: String(t.id), tuteur_nom: `${t.prenom || ''} ${t.nom || ''}`.trim(), montant, date, remarque: remarque || null, eleves
+                tuteur_id: String(t.id), tuteur_nom: `${t.prenom || ''} ${t.nom || ''}`.trim(), montant, date, remarque: remarque || null
             }]).select();
             if (error || !data || !data.length) {
                 console.error(error);
@@ -449,16 +447,13 @@
         }
 
         $('pay-date').value = aujourdhui();
-        $('pay-eleves').addEventListener('input', () => { $('pay-montant').value = MONTANT_CONTRIBUTION * (Number($('pay-eleves').value) || 1); });
         $('form-paiement').addEventListener('submit', async (e) => {
             e.preventDefault();
             const t = fiches.find(x => String(x.id) === $('pay-tuteur').value);
             const montant = Number($('pay-montant').value);
-            const eleves = Math.max(1, Math.round(Number($('pay-eleves').value) || 1));
             if (!t || !(montant > 0) || !$('pay-date').value) return alert('Choisis un tuteur, un montant et une date.');
-            if (await enregistrerPaiement(t, montant, $('pay-date').value, $('pay-remarque').value.trim(), eleves)) {
+            if (await enregistrerPaiement(t, montant, $('pay-date').value, $('pay-remarque').value.trim())) {
                 $('pay-remarque').value = '';
-                $('pay-eleves').value = 1;
                 $('pay-montant').value = MONTANT_CONTRIBUTION;
             }
         });
@@ -478,9 +473,9 @@
         $('export-paiements').addEventListener('click', () => {
             if (!paiements.length) return alert('Aucun paiement à télécharger.');
             const cellule = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-            const lignes = [['Date', 'Tuteur', 'Élèves', 'Montant (CHF)', 'Remarque']]
-                .concat([...paiements].reverse().map(p => [p.date, p.tuteur_nom, p.eleves || 1, Number(p.montant).toFixed(2), p.remarque || '']))
-                .concat([['', 'TOTAL', paiements.reduce((s, p) => s + (p.eleves || 1), 0), paiements.reduce((s, p) => s + Number(p.montant), 0).toFixed(2), '']]);
+            const lignes = [['Date', 'Tuteur', 'Montant (CHF)', 'Remarque']]
+                .concat([...paiements].reverse().map(p => [p.date, p.tuteur_nom, Number(p.montant).toFixed(2), p.remarque || '']))
+                .concat([['', 'TOTAL', paiements.reduce((s, p) => s + Number(p.montant), 0).toFixed(2), '']]);
             const csv = '﻿' + lignes.map(l => l.map(cellule).join(';')).join('\r\n');
             const lien = document.createElement('a');
             lien.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
