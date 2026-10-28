@@ -59,9 +59,9 @@
         .filtre.actif { background: var(--blue); border-color: var(--blue); color: white; }
         .tri { font-size: 0.9rem; color: #475569; }
         .tri select { font: inherit; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; margin-left: 6px; }
-        .droite { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .droite { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; margin-left: auto; }
         .recherche { font: inherit; font-size: 0.9rem; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; width: 220px; max-width: 100%; box-sizing: border-box; }
-        @media (max-width: 500px) { .droite, .recherche { width: 100%; } }
+        @media (max-width: 500px) { .droite { width: 100%; } }
 
         /* Badge « Vérifié » avec bulle d'info (s'ouvre au clic ou au toucher) et tag « Nouveau » */
         .tuteur-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
