@@ -59,6 +59,9 @@
         .filtre.actif { background: var(--blue); border-color: var(--blue); color: white; }
         .tri { font-size: 0.9rem; color: #475569; }
         .tri select { font: inherit; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; margin-left: 6px; }
+        .droite { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .recherche { font: inherit; font-size: 0.9rem; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; width: 220px; max-width: 100%; box-sizing: border-box; }
+        @media (max-width: 500px) { .droite, .recherche { width: 100%; } }
 
         /* Badge « Vérifié » avec bulle d'info (s'ouvre au clic ou au toucher) et tag « Nouveau » */
         .tuteur-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
@@ -95,13 +98,16 @@
             <p class="avertissement">Twoco facilite le contact. L'organisation et le paiement des cours se gèrent 100 % entre étudiants.</p>
             <div class="outils">
                 <div class="filtres" id="filtres"></div>
-                <label class="tri">Trier par
-                    <select id="tri">
-                        <option value="recommande">Recommandé</option>
-                        <option value="verifies">Vérifiés</option>
-                        <option value="nouveaux">Nouveaux</option>
-                    </select>
-                </label>
+                <div class="droite">
+                    <label class="tri">Trier par
+                        <select id="tri">
+                            <option value="recommande">Recommandé</option>
+                            <option value="verifies">Vérifiés</option>
+                            <option value="nouveaux">Nouveaux</option>
+                        </select>
+                    </label>
+                    <input type="search" id="recherche" class="recherche" placeholder="🔍 Langue, nom, matière…" aria-label="Rechercher un tuteur par langue, nom ou matière">
+                </div>
             </div>
             <div id="tuteurs-container" class="tuteurs-grid"></div>
         </section>
@@ -192,11 +198,12 @@
             const container = $('tuteurs-container');
             container.innerHTML = '<p class="msg">Chargement des tuteurs...</p>';
             $('filtres').innerHTML = '';
+            $('recherche').value = '';
             filtre = '';
             faculteCourante = cle;
             const { data, error } = await db
                 .from('tuteurs')
-                .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, nb_eleves, fondateur')
+                .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, nb_eleves, fondateur, langues')
                 .eq('status', 'valide').eq('faculte', cle).eq('annee', a);
 
             if (error) {
@@ -230,14 +237,26 @@
             return resultat;
         }
 
+        // Recherche : langues, nom et matières, sans tenir compte des majuscules ni des accents
+        const normaliser = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const texteRecherche = t => normaliser([t.langues, t.prenom, t.nom, t.matieres].join(' '));
+
         function rendreListe() {
             const container = $('tuteurs-container');
             if (liste.length === 0) {
                 container.innerHTML = '<p class="msg">Aucun tuteur pour le moment. Sois le premier à t\'inscrire !</p>';
                 return;
             }
-            let visibles = liste.filter(t => !filtre || matieresDe(t).includes(filtre)).sort(TRIS[$('tri').value] || recommande);
+            const mots = normaliser($('recherche').value).split(' ').filter(Boolean);
+            let visibles = liste
+                .filter(t => !filtre || matieresDe(t).includes(filtre))
+                .filter(t => { const texte = texteRecherche(t); return mots.every(m => texte.includes(m)); })
+                .sort(TRIS[$('tri').value] || recommande);
             if ($('tri').value === 'recommande') visibles = placerFondateurs(visibles);
+            if (visibles.length === 0) {
+                container.innerHTML = '<p class="msg">Aucun tuteur ne correspond à ta recherche.</p>';
+                return;
+            }
             container.innerHTML = visibles.map(t => {
                 const tags = matieresDe(t).map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
                 const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');
@@ -257,7 +276,7 @@
                         <div class="tuteur-info">
                             <div class="tuteur-tete"><h3>${nom}</h3>${fondateur}${statut}</div>
                             <div style="margin-bottom: 15px;">${tags}</div>
-                            <p>📍 ${esc(t.lieu || '')}<br>📅 Dispo à convenir</p>
+                            <p>📍 ${esc(t.lieu || '')}<br>📅 Dispo à convenir${t.langues ? `<br>🗣️ ${esc(t.langues)}` : ''}</p>
                         </div>
                         <div class="card-footer">
                             <div class="prix">${esc(t.prix || '')}</div>
@@ -276,6 +295,7 @@
             rendreListe();
         });
         $('tri').addEventListener('change', rendreListe);
+        $('recherche').addEventListener('input', rendreListe);
 
         // Clic sur une carte de faculté (accueil)
         $('vue-facs').addEventListener('click', (e) => {
