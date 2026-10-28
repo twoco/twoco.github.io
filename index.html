@@ -68,7 +68,7 @@
         .tuteur-tete h3 { margin: 0; }
         .badge-verifie, .tag-nouveau { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
         .badge-verifie { background: #fef3c7; color: #78350f; padding-left: 4px; }
-        .etoile { color: #f59e0b; font-size: 0.95rem; line-height: 1; }
+        .etoile { width: 15px; height: 15px; flex: none; }
         .tag-nouveau { background: #fef9c3; color: #854d0e; }
         .tag-fondateur { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--dark); color: white; }
         .info { position: relative; cursor: pointer; font-weight: 700; }
@@ -180,6 +180,8 @@
         let liste = [], filtre = '', faculteCourante = '';
         const matieresDe = t => String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean);
         const INFO_VERIFIE = 'Ce tuteur a déjà donné un premier cours via Twoco.';
+        // Étoile aux pointes arrondies : un trait épais de la même couleur que le remplissage (pas de contour visible)
+        const ETOILE = '<svg class="etoile" viewBox="-2 -2 28 28" aria-hidden="true"><path fill="#f59e0b" stroke="#f59e0b" stroke-width="3.5" stroke-linejoin="round" d="M12 1.8l3.1 6.4 7 1-5.1 4.9 1.2 7L12 17.8l-6.2 3.3 1.2-7L1.9 9.2l7-1z"/></svg>';
 
         // Recommandé = le moins contacté en haut (il a sûrement encore de la place),
         // les égalités sont mélangées au hasard à chaque chargement de la page
@@ -258,7 +260,7 @@
                 const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');
                 // Vérifié = le tuteur a payé les 5 CHF après son premier cours (badge donné par Supabase au paiement)
                 const statut = t.badge_verifie
-                    ? `<span class="badge-verifie"><span class="etoile" aria-hidden="true">★</span>Vérifié <span class="info" tabindex="0" role="button" aria-label="${INFO_VERIFIE}" data-info="${INFO_VERIFIE}">ⓘ</span></span>`
+                    ? `<span class="badge-verifie">${ETOILE}Vérifié <span class="info" tabindex="0" role="button" aria-label="${INFO_VERIFIE}" data-info="${INFO_VERIFIE}">ⓘ</span></span>`
                     : '<span class="tag-nouveau">🌱 Nouveau</span>';
                 const fondateur = NOM_FONDATEUR[t.fondateur] ? `<span class="tag-fondateur">✦ ${NOM_FONDATEUR[t.fondateur]}</span>` : '';
                 const tel = String(t.whatsapp || '').replace(/\D/g, '');
