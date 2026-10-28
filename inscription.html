@@ -40,11 +40,13 @@
         .chip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
         .resume { margin: 20px 0 0; padding: 0 0 0 20px; color: #334155; font-size: 0.92rem; }
         .resume li { margin-bottom: 8px; }
-        .consent { display: flex; gap: 12px; align-items: flex-start; font-weight: 600; font-size: 0.95rem; margin-top: 22px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
+        .consent { display: flex; gap: 12px; align-items: flex-start; font-weight: 600; font-size: 0.95rem; margin-top: 12px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
         .consent input { margin-top: 4px; width: 18px; height: 18px; flex-shrink: 0; }
         .consent a { color: var(--blue); }
         button { width: 100%; background: var(--blue); color: white; border: none; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 1rem; margin-top: 24px; cursor: pointer; }
-        button:disabled { opacity: 0.6; cursor: wait; }
+        button:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
+        .manque { margin: 10px 0 0; text-align: center; color: #64748b; font-size: 0.85rem; }
+        .manque:empty { display: none; }
         #erreur { color: #b91c1c; font-weight: 600; margin-top: 16px; display: none; }
         #succes { display: none; text-align: center; }
         [hidden] { display: none !important; }
@@ -118,18 +120,23 @@
                 <ul class="resume">
                     <li>Ton prénom, ton nom, ton WhatsApp et tes cours sont <strong>visibles sur le site</strong>. Tu peux demander leur retrait à tout moment.</li>
                     <li>Tu es <strong>au moins en 2e année</strong> et tu as réussi les matières que tu proposes.</li>
-                    <li>L'inscription est gratuite. Après ton premier cours avec un élève venu du site, Twoco peut te demander <strong>5 CHF par TWINT, une seule fois</strong>. Ce versement te donne le badge « Vérifié ».</li>
+                    <li>L'inscription est gratuite.</li>
                 </ul>
                 <label class="consent">
                     <input type="checkbox" id="accord">
                     <span>J'atteste sur l'honneur que c'est exact et j'accepte les <a href="legal.html#cgu" target="_blank">CGU</a> et la <a href="legal.html#confidentialite" target="_blank">Politique de confidentialité</a>.</span>
+                </label>
+                <label class="consent">
+                    <input type="checkbox" id="contribution">
+                    <span>J'accepte de verser <strong>5 CHF par TWINT, une seule fois</strong>, après mon premier cours avec un élève venu du site. <span class="aide">Ce versement me donne le badge « Vérifié ».</span></span>
                 </label>
             </div>
 
             <input type="text" id="site" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 
             <p id="erreur" role="alert"></p>
-            <button type="submit" id="envoyer">Envoyer ma candidature</button>
+            <button type="submit" id="envoyer" disabled>Envoyer ma candidature</button>
+            <p id="manque" class="manque"></p>
         </form>
 
         <div id="succes">
@@ -227,6 +234,25 @@
             return (n.length >= 11 && n.length <= 15) ? n : null;
         }
 
+        // Le bouton reste gris tant que le minimum n'est pas rempli
+        function emailValide(e) { return e.endsWith(CONFIG.EMAIL_DOMAINE) && /^[^\s@]+@[^\s@]+$/.test(e); }
+        let envoiEnCours = false;
+        function majBouton() {
+            if (envoiEnCours) return;
+            const manque = [];
+            if (!$('prenom').value.trim()) manque.push('prénom');
+            if (!$('nom').value.trim()) manque.push('nom');
+            if (!emailValide($('email').value.trim().toLowerCase())) manque.push(`e-mail ${CONFIG.EMAIL_DOMAINE}`);
+            if (!normaliserTel($('whatsapp').value)) manque.push('numéro WhatsApp');
+            if (!$('accord').checked) manque.push('la case des CGU');
+            if (!$('contribution').checked) manque.push('la case des 5 CHF');
+            $('envoyer').disabled = manque.length > 0;
+            $('manque').textContent = manque.length ? 'Il manque : ' + manque.join(', ') + '.' : '';
+        }
+        $('formulaire').addEventListener('input', majBouton);
+        $('formulaire').addEventListener('change', majBouton);
+        majBouton();
+
         const ouverture = Date.now();
 
         function montrerErreur(msg) {
@@ -261,11 +287,12 @@
             if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
                 return montrerErreur(`Indique un prix entre ${CONFIG.PRIX_MIN} et ${CONFIG.PRIX_MAX} CHF par heure.`);
             if (!whatsapp) return montrerErreur('Numéro WhatsApp invalide. Exemple : 079 123 45 67.');
-            if (!email.endsWith(CONFIG.EMAIL_DOMAINE) || !/^[^\s@]+@[^\s@]+$/.test(email))
+            if (!emailValide(email))
                 return montrerErreur(`Indique ton adresse e-mail universitaire (qui se termine par ${CONFIG.EMAIL_DOMAINE}).`);
-            if (!$('accord').checked) return montrerErreur('Coche la case en bas du formulaire pour confirmer.');
+            if (!$('accord').checked || !$('contribution').checked) return montrerErreur('Coche les deux cases en bas du formulaire.');
 
             const btn = $('envoyer');
+            envoiEnCours = true;
             btn.disabled = true;
             btn.textContent = 'Envoi en cours...';
 
@@ -285,8 +312,9 @@
                 // Messages des protections anti-spam de Supabase (commencent par « TWOCO: »)
                 const msg = String(error.message || '');
                 montrerErreur(msg.startsWith('TWOCO: ') ? msg.slice(7) : 'L\'envoi a échoué. Réessaie dans un instant.');
-                btn.disabled = false;
                 btn.textContent = 'Envoyer ma candidature';
+                envoiEnCours = false;
+                majBouton();
                 return;
             }
             $('formulaire').style.display = 'none';
