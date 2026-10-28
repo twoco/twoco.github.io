@@ -1,0 +1,5 @@
+# Plan du site pour les moteurs de recherche
+User-agent: *
+Disallow: /admin.html
+Disallow: /CLAUDE.md
+Sitemap: https://twoco.ch/sitemap.xml
