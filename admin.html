@@ -288,6 +288,7 @@
                         <p><strong>Matières :</strong> ${esc(t.matieres)}</p>
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
+                        ${t.langues ? `<p><strong>Langues :</strong> ${esc(t.langues)}</p>` : ''}
                         ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.nb_eleves ? `★ <strong>${esc(t.nb_eleves)} élève${t.nb_eleves > 1 ? 's' : ''}</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
@@ -690,8 +691,17 @@
                                 <h3>${esc(f.nom)} <span class="nb-clics" title="Clics sur la carte de cette faculté (accueil)">${clicsFacultes[f.cle] || 0} clics</span></h3>
                                 <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)}</p>
                             </div>
-                            <button type="button" class="btn-d petit" data-cat="suppr-fac" data-cle="${esc(f.cle)}">Supprimer la faculté</button>
+                            <div class="actions">
+                                <button type="button" class="btn-n petit" data-cat="modif-fac" data-cle="${esc(f.cle)}">✏️ Modifier</button>
+                                <button type="button" class="btn-d petit" data-cat="suppr-fac" data-cle="${esc(f.cle)}">Supprimer la faculté</button>
+                            </div>
                         </div>
+                        <form class="ajout modif-fac" data-modif="${esc(f.cle)}" hidden>
+                            <div><label>Nom affiché</label><input name="nom" value="${esc(f.nom)}" maxlength="40" required></div>
+                            <div><label>Sous-titre</label><input name="sous_titre" value="${esc(f.sous_titre || '')}" maxlength="80"></div>
+                            <div><label>Université</label><input name="universite" value="${esc(f.universite)}" maxlength="20" required></div>
+                            <button type="submit">Enregistrer</button>
+                        </form>
                         ${contenu}
                         <form class="ajout" data-fac="${esc(f.cle)}">
                             <div><label>Nouvelle matière</label><input name="nom" placeholder="ex : Microéconomie" maxlength="80" required></div>
@@ -716,6 +726,18 @@
 
         $('catalogue').addEventListener('submit', async (e) => {
             e.preventDefault();
+            // Renommer une faculté : seul le texte affiché change (la clé interne, utilisée par les
+            // tuteurs, les matières et les liens, reste la même)
+            const modif = e.target.closest('form.modif-fac');
+            if (modif) {
+                const nom = modif.nom.value.trim();
+                if (!nom) return;
+                if (!ok(await db.from('facultes').update({
+                    nom, sous_titre: modif.sous_titre.value.trim() || null, universite: modif.universite.value.trim() || 'UNIL'
+                }).eq('cle', modif.dataset.modif).select())) return;
+                chargerCatalogueAdmin();
+                return;
+            }
             const form = e.target.closest('form.ajout');
             if (!form) return;
             const cle = form.dataset.fac;
@@ -733,6 +755,11 @@
         $('catalogue').addEventListener('click', async (e) => {
             const btn = e.target.closest('button[data-cat]');
             if (!btn) return;
+            if (btn.dataset.cat === 'modif-fac') {
+                const f = document.querySelector(`form.modif-fac[data-modif="${CSS.escape(btn.dataset.cle)}"]`);
+                if (f) { f.hidden = !f.hidden; if (!f.hidden) f.nom.focus(); }
+                return;
+            }
             if (btn.dataset.cat === 'suppr-mat') {
                 const m = cat.matieres.find(x => String(x.id) === btn.dataset.id);
                 if (!m || !confirm(`Supprimer la matière « ${m.nom} » ?\nLes tuteurs qui l'ont déjà choisie la gardent sur leur profil.`)) return;
