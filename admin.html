@@ -111,6 +111,9 @@
         .ajout-fac { grid-template-columns: 2fr 2fr 1fr; border-top: none; margin-top: 8px; padding-top: 0; }
         @media (max-width: 600px) { .ajout, .ajout-fac { grid-template-columns: 1fr 1fr; } }
         [hidden] { display: none !important; }
+        body.associe .admin-seul { display: none !important; }
+        .bandeau-role { background: #fef3c7; color: #78350f; border-radius: 10px; padding: 10px 14px; margin: 16px 0 0; font-size: 0.9rem; }
+        .refus { max-width: 420px; margin: 80px auto; text-align: center; }
     </style>
 </head>
 <body>
@@ -130,6 +133,7 @@
             <button id="logout" type="button">Se déconnecter</button>
         </div>
         <div class="wrap">
+            <p class="bandeau-role" id="bandeau-role" hidden>Compte associé : tu peux tout consulter et modifier les facultés et les matières. Les autres actions sont réservées à l'administrateur.</p>
             <div class="onglets">
                 <button type="button" class="actif" data-onglet="col-tuteurs">Tuteurs</button>
                 <button type="button" data-onglet="col-matieres">Matières</button>
@@ -138,7 +142,7 @@
             <section class="stats panneau" id="stats">
                 <div class="titre-stats">
                     <h2>Statistiques</h2>
-                    <button type="button" class="btn-d petit" id="remise-zero">Remettre à zéro</button>
+                    <button type="button" class="btn-d petit admin-seul" id="remise-zero">Remettre à zéro</button>
                 </div>
                 <p class="tuiles-titre">7 derniers jours</p>
                 <div class="tuiles" id="tuiles"><p class="vide">Chargement...</p></div>
@@ -165,7 +169,7 @@
                         <button type="button" class="btn-n petit" id="export-paiements">Télécharger pour les impôts</button>
                     </div>
                     <div class="tuiles" id="tuiles-paiements"></div>
-                    <form class="ajout ajout-paiement" id="form-paiement">
+                    <form class="ajout ajout-paiement admin-seul" id="form-paiement">
                         <div><label for="pay-tuteur">Tuteur</label><select id="pay-tuteur" required></select></div>
                         <div><label for="pay-eleves">Nouveaux élèves</label><input id="pay-eleves" type="number" min="1" step="1" value="1" required></div>
                         <div><label for="pay-montant">Montant (CHF)</label><input id="pay-montant" type="number" min="0.05" step="0.05" value="5" required></div>
@@ -228,8 +232,35 @@
         const $ = id => document.getElementById(id);
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+        // Rôle de la personne connectée (table Supabase « roles ») :
+        // « admin » = tout ; « associe » = tout voir, mais ne modifier que les facultés et matières.
+        // La vraie protection est dans Supabase : ici on cache seulement les boutons inutiles.
+        const EMAIL_ADMIN = 'contact.twoco@gmail.com';
+        let ROLE = null;
+        const estAdmin = () => ROLE === 'admin';
+
+        async function lireRole() {
+            const { data: session } = await db.auth.getSession();
+            const email = ((session.session && session.session.user.email) || '').toLowerCase();
+            const { data, error } = await db.rpc('role_courant');
+            if (!error && data) return data;
+            return email === EMAIL_ADMIN ? 'admin' : null; // avant la création de la table « roles »
+        }
+
         function montrerLogin() { $('panel').hidden = true; $('login').hidden = false; }
-        function montrerPanel() { $('login').hidden = true; $('panel').hidden = false; chargerPaiements().then(charger); chargerCatalogueAdmin(); chargerStats(); }
+        async function montrerPanel() {
+            ROLE = await lireRole();
+            if (!ROLE) {
+                await db.auth.signOut();
+                montrerLogin();
+                $('login-err').textContent = 'Ce compte n\'a pas accès à l\'administration.';
+                return;
+            }
+            document.body.classList.toggle('associe', !estAdmin());
+            $('bandeau-role').hidden = estAdmin();
+            $('login').hidden = true; $('panel').hidden = false;
+            chargerPaiements().then(charger); chargerCatalogueAdmin(); chargerStats();
+        }
 
         $('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -302,13 +333,13 @@
                 .map(t => `<option value="${esc(t.id)}">${esc(t.prenom)} ${esc(t.nom)}</option>`).join('');
 
             $('liste-attente').innerHTML = attente.length
-                ? attente.map(t => carte(t, [
+                ? attente.map(t => carte(t, !estAdmin() ? [] : [
                     { cls: 'btn-v', action: 'valider', label: dejaPublie(t) ? 'Valider (remplace l\'ancien profil)' : 'Valider' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Refuser' }], avertissement(t))).join('')
                 : '<p class="vide">Aucune candidature en attente.</p>';
 
             $('liste-valides').innerHTML = valides.length
-                ? valides.map(t => carte(t, [
+                ? valides.map(t => carte(t, !estAdmin() ? [] : [
                     { cls: 'btn-v', action: 'paiement', label: '💰 Paiement reçu' },
                     // 📌 Fondateur -> 📌 Cofondateur -> Retirer 📌
                     { cls: 'btn-n', action: 'fondateur',
@@ -397,7 +428,7 @@
                     <td>${esc(p.eleves || 1)}</td>
                     <td class="montant">${esc(chf(p.montant))}</td>
                     <td>${esc(p.remarque || '')}</td>
-                    <td><button type="button" data-paiement="${p.id}" title="Supprimer ce paiement">✕</button></td>
+                    <td>${estAdmin() ? `<button type="button" data-paiement="${p.id}" title="Supprimer ce paiement">✕</button>` : ''}</td>
                 </tr>`).join('') : '<tr><td colspan="6" class="vide">Aucun paiement enregistré.</td></tr>';
         }
 
