@@ -3,8 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TWOCO - Cours d'appui entre étudiants</title>
+    <title>Twoco – Cours d'appui entre étudiants de l'UNIL</title>
+    <meta name="description" content="Trouve un étudiant de 2e année qui t'aide dans tes matières de 1re année à l'UNIL. Contact direct par WhatsApp.">
+    <link rel="canonical" href="https://twoco.ch/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Twoco">
+    <meta property="og:locale" content="fr_CH">
+    <meta property="og:url" content="https://twoco.ch/">
+    <meta property="og:title" content="Twoco – Cours d'appui entre étudiants de l'UNIL">
+    <meta property="og:description" content="Trouve un étudiant de 2e année qui t'aide dans tes matières de 1re année à l'UNIL. Contact direct par WhatsApp.">
+    <meta property="og:image" content="https://twoco.ch/apercu.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Logo Twoco : cours d'appui entre étudiants de l'UNIL">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="fonts/inter.css?v=dev" rel="stylesheet">
+    <link href="fonts/montserrat.css?v=dev" rel="stylesheet">
     <script src="vendor/supabase.js?v=dev"></script>
     <script src="config.js?v=dev"></script>
     <script src="catalogue.js?v=dev"></script>
@@ -14,8 +31,9 @@
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
         [hidden] { display: none !important; }
         .navbar { background-color: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
-        .brand-title { font-size: 1.8rem; font-weight: 800; color: white; text-decoration: none; }
-        .brand-title span { color: var(--cyan); }
+        .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
+        .brand-title img { width: 1.3em; height: 1.3em; }
+        .brand-title .co { color: #4aa8ec; }
         .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
         .hero { text-align: center; padding: 50px 20px 60px; background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%); color: white; }
         .hero h1 { margin: 0 0 8px; }
@@ -80,7 +98,7 @@
 </head>
 <body>
     <div class="navbar">
-        <a href="#" class="brand-title">TWO<span>CO</span></a>
+        <a href="#" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a>
         <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
     </div>
     <div class="hero">

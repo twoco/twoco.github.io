@@ -3,8 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Devenir tuteur - TWOCO</title>
+    <title>Devenir tuteur – Twoco</title>
+    <meta name="description" content="Tu es en 2e année ou plus à l'UNIL ? Donne des cours d'appui aux étudiants de 1re année. Inscription gratuite en 2 minutes.">
+    <link rel="canonical" href="https://twoco.ch/inscription.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Twoco">
+    <meta property="og:locale" content="fr_CH">
+    <meta property="og:url" content="https://twoco.ch/inscription.html">
+    <meta property="og:title" content="Devenir tuteur – Twoco">
+    <meta property="og:description" content="Tu es en 2e année ou plus à l'UNIL ? Donne des cours d'appui aux étudiants de 1re année. Inscription gratuite en 2 minutes.">
+    <meta property="og:image" content="https://twoco.ch/apercu.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Logo Twoco : cours d'appui entre étudiants de l'UNIL">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="fonts/inter.css?v=dev" rel="stylesheet">
+    <link href="fonts/montserrat.css?v=dev" rel="stylesheet">
     <script src="vendor/supabase.js?v=dev"></script>
     <script src="config.js?v=dev"></script>
     <script src="catalogue.js?v=dev"></script>
@@ -13,8 +30,9 @@
         :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
         .navbar { background: var(--dark); padding: 15px 20px; }
-        .brand-title { font-size: 1.8rem; font-weight: 800; color: white; text-decoration: none; }
-        .brand-title span { color: var(--cyan); }
+        .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
+        .brand-title img { width: 1.3em; height: 1.3em; }
+        .brand-title .co { color: #4aa8ec; }
         .card { max-width: 560px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); line-height: 1.5; }
         h2 { margin: 0 0 6px; font-size: 1.6rem; }
         .intro { margin: 0; color: #64748b; }
@@ -60,7 +78,7 @@
     </style>
 </head>
 <body>
-    <div class="navbar"><a href="index.html" class="brand-title">TWO<span>CO</span></a></div>
+    <div class="navbar"><a href="index.html" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a></div>
 
     <div class="card">
         <form id="formulaire" novalidate>
