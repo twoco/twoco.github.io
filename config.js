@@ -13,7 +13,8 @@ const CONFIG = {
     // Début du nom suffit, sans tenir compte des majuscules ni des accents.
     // Faculté absente ou matière introuvable : les premières matières de la liste.
     APERCU_MATIERES: {
-        hec: ['Comptabilité financière', 'Statistique']
+        hec: ['Comptabilité financière', 'Statistique'],
+        droit: ['Droit pénal']
     },
 
     // Lieux proposés dans le formulairee
