@@ -21,6 +21,7 @@
     <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="fonts/inter.css?v=dev" rel="stylesheet">
+    <link href="fonts/montserrat.css?v=dev" rel="stylesheet">
     <script src="vendor/supabase.js?v=dev"></script>
     <script src="config.js?v=dev"></script>
     <script src="catalogue.js?v=dev"></script>
@@ -30,8 +31,9 @@
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
         [hidden] { display: none !important; }
         .navbar { background-color: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
-        .brand-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; color: white; text-decoration: none; }
-        .brand-title span { color: var(--cyan); }
+        .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
+        .brand-title img { width: 1.3em; height: 1.3em; }
+        .brand-title .co { color: #4aa8ec; }
         .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
         .hero { text-align: center; padding: 50px 20px 60px; background: linear-gradient(180deg, var(--dark) 0%, var(--bg) 100%); color: white; }
         .hero h1 { margin: 0 0 8px; }
@@ -96,7 +98,7 @@
 </head>
 <body>
     <div class="navbar">
-        <a href="#" class="brand-title">two<span>co</span></a>
+        <a href="#" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a>
         <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
     </div>
     <div class="hero">
