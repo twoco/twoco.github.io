@@ -9,6 +9,14 @@ const CONFIG = {
 
     // Les facultés et les matières se gèrent depuis la page admin (stockées dans Supabase).
 
+    // Matières montrées en exemple (aperçu grisé) sur la carte de chaque faculté, page d'accueil.
+    // Début du nom suffit, sans tenir compte des majuscules ni des accents.
+    // Faculté absente ou matière introuvable : les premières matières de la liste.
+    APERCU_MATIERES: {
+        hec: ['Comptabilité financière', 'Statistique'],
+        droit: ['Droit pénal']
+    },
+
     // Lieux proposés dans le formulairee
     LIEUX: [
         'Campus UNIL (Internef/Amphimax)',
