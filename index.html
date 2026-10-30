@@ -147,11 +147,21 @@
         const nbAnnee = (cle, a) => compteurs ? ((compteurs[cle] || {})[a] || 0) : null;
         const badge = n => n === null ? '' : `<span class="fac-count">${n ? n + ' tuteur' + (n > 1 ? 's' : '') : 'Bientôt des tuteurs'}</span>`;
 
+        // Les 2 matières de l'aperçu : celles choisies dans CONFIG.APERCU_MATIERES, sinon les premières
+        function matieresApercu(cle, liste) {
+            const norm = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const choix = ((CONFIG.APERCU_MATIERES || {})[cle] || [])
+                .map(debut => liste.find(m => norm(m).startsWith(norm(debut))))
+                .filter(Boolean);
+            const reste = liste.filter(m => !choix.includes(m));
+            return [...new Set(choix), ...reste].slice(0, 2);
+        }
+
         function rendreAccueil() {
             const prix = (CONFIG.PRIX_FIXE || 30) + ' CHF/h';
             $('vue-facs').innerHTML = Object.entries(FAC).map(([cle, f]) => {
                 const premiere = Object.values(f.annees)[0];
-                const mini = aplat(premiere.matieres).slice(0, 2).map(m => `
+                const mini = matieresApercu(cle, aplat(premiere.matieres)).map(m => `
                     <div class="mini">
                         <span class="tag-matiere">${esc(m)}</span>
                         <div class="bar" style="width:55%"></div>
