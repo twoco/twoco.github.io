@@ -113,6 +113,12 @@
         .ajout label { font-size: 0.8rem; font-weight: 600; color: #475569; }
         .ajout input { margin-top: 4px; padding: 10px; }
         .ajout button { background: var(--blue); color: white; padding: 11px 16px; grid-column: 1 / -1; }
+        /* Image de la bande d'une faculté */
+        .ajout .image-champ { grid-column: 1 / -1; }
+        .ajout input[type=file] { padding: 8px; background: white; }
+        .ajout .retirer { display: flex; gap: 6px; align-items: center; margin-top: 6px; font-weight: 400; }
+        .ajout .retirer input { margin: 0; }
+        .miniature { display: block; width: 100%; max-width: 320px; height: 70px; object-fit: cover; border-radius: 8px; margin-top: 10px; }
         .ajout-fac { grid-template-columns: 2fr 2fr 1fr; border-top: none; margin-top: 8px; padding-top: 0; }
         @media (max-width: 600px) { .ajout, .ajout-fac { grid-template-columns: 1fr 1fr; } }
         [hidden] { display: none !important; }
@@ -208,6 +214,7 @@
                             <div><label for="fac-nom">Nom affiché</label><input id="fac-nom" placeholder="ex : Psychologie" maxlength="40" required></div>
                             <div><label for="fac-sous">Sous-titre</label><input id="fac-sous" placeholder="ex : Faculté des SSP" maxlength="80"></div>
                             <div><label for="fac-uni">Université</label><input id="fac-uni" value="UNIL" maxlength="20" required></div>
+                            <div class="image-champ"><label for="fac-image">Image de la bande <span class="vide">(facultatif, s'affiche en haut de la page de la faculté)</span></label><input type="file" id="fac-image" accept="image/*"></div>
                             <button type="submit">Ajouter</button>
                         </div>
                     </form>
@@ -690,6 +697,7 @@
                             <div>
                                 <h3>${esc(f.nom)} <span class="nb-clics" title="Clics sur la carte de cette faculté (accueil)">${clicsFacultes[f.cle] || 0} clics</span></h3>
                                 <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)}</p>
+                                ${f.image ? `<img class="miniature" src="${esc(f.image)}" alt="Image de la bande ${esc(f.nom)}">` : ''}
                             </div>
                             <div class="actions">
                                 <button type="button" class="btn-n petit" data-cat="modif-fac" data-cle="${esc(f.cle)}">✏️ Modifier</button>
@@ -700,6 +708,8 @@
                             <div><label>Nom affiché</label><input name="nom" value="${esc(f.nom)}" maxlength="40" required></div>
                             <div><label>Sous-titre</label><input name="sous_titre" value="${esc(f.sous_titre || '')}" maxlength="80"></div>
                             <div><label>Université</label><input name="universite" value="${esc(f.universite)}" maxlength="20" required></div>
+                            <div class="image-champ"><label>${f.image ? 'Changer l\'image de la bande' : 'Image de la bande'} <span class="vide">(facultatif)</span></label><input type="file" name="image" accept="image/*">
+                                ${f.image ? '<label class="retirer"><input type="checkbox" name="retirer"> Retirer l\'image (l\'Amphimax s\'affichera à la place)</label>' : ''}</div>
                             <button type="submit">Enregistrer</button>
                         </form>
                         ${contenu}
@@ -724,6 +734,29 @@
             return true;
         }
 
+        // ---------- Image de la bande d'une faculté (Supabase Storage, dossier public « facultes »)
+        // L'image est réduite à 2000 px de large et convertie en WebP dans le navigateur avant l'envoi.
+        async function envoyerImage(cle, fichier) {
+            const img = await createImageBitmap(fichier);
+            const echelle = Math.min(1, 2000 / img.width);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * echelle);
+            canvas.height = Math.round(img.height * echelle);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            let blob = await new Promise(r => canvas.toBlob(r, 'image/webp', 0.82));
+            if (!blob || blob.type !== 'image/webp') blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+            const chemin = `${cle}-${Date.now()}.${blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
+            const { error } = await db.storage.from('facultes').upload(chemin, blob, { contentType: blob.type, cacheControl: '31536000' });
+            if (error) { console.error(error); alert('Envoi de l\'image refusé. Vérifie que tu es connecté avec le bon compte.'); return null; }
+            return db.storage.from('facultes').getPublicUrl(chemin).data.publicUrl;
+        }
+
+        // Supprime l'ancien fichier du stockage (pour ne pas garder des images inutilisées)
+        function supprimerImage(url) {
+            const chemin = (url || '').split('/storage/v1/object/public/facultes/')[1];
+            if (chemin) db.storage.from('facultes').remove([decodeURIComponent(chemin)]).then(({ error }) => { if (error) console.error(error); });
+        }
+
         $('catalogue').addEventListener('submit', async (e) => {
             e.preventDefault();
             // Renommer une faculté : seul le texte affiché change (la clé interne, utilisée par les
@@ -732,9 +765,16 @@
             if (modif) {
                 const nom = modif.nom.value.trim();
                 if (!nom) return;
-                if (!ok(await db.from('facultes').update({
-                    nom, sous_titre: modif.sous_titre.value.trim() || null, universite: modif.universite.value.trim() || 'UNIL'
-                }).eq('cle', modif.dataset.modif).select())) return;
+                const ancienne = (cat.facultes.find(x => x.cle === modif.dataset.modif) || {}).image || null;
+                const changements = { nom, sous_titre: modif.sous_titre.value.trim() || null, universite: modif.universite.value.trim() || 'UNIL' };
+                const fichier = modif.image.files[0];
+                if (fichier) {
+                    const url = await envoyerImage(modif.dataset.modif, fichier);
+                    if (!url) return;
+                    changements.image = url;
+                } else if (modif.retirer && modif.retirer.checked) changements.image = null;
+                if (!ok(await db.from('facultes').update(changements).eq('cle', modif.dataset.modif).select())) return;
+                if (ancienne && 'image' in changements && changements.image !== ancienne) supprimerImage(ancienne);
                 chargerCatalogueAdmin();
                 return;
             }
@@ -770,6 +810,7 @@
                 if (!f || !confirm(`Supprimer la faculté « ${f.nom} » et toutes ses matières ?` +
                     (n ? `\n⚠️ ${n} profil(s) de tuteur sont rattachés à cette faculté : ils ne seront plus visibles sur le site.` : ''))) return;
                 if (!ok(await db.from('facultes').delete().eq('cle', f.cle).select())) return;
+                supprimerImage(f.image);
             }
             chargerCatalogueAdmin();
         });
@@ -779,11 +820,17 @@
             const nom = $('fac-nom').value.trim();
             if (!nom) return;
             const ordre = Math.max(-1, ...cat.facultes.map(f => f.ordre)) + 1;
+            const cle = nouvelleCle(nom);
+            let image = null;
+            if ($('fac-image').files[0]) {
+                image = await envoyerImage(cle, $('fac-image').files[0]);
+                if (!image) return;
+            }
             if (!ok(await db.from('facultes').insert([{
-                cle: nouvelleCle(nom), nom, sous_titre: $('fac-sous').value.trim() || null,
-                universite: $('fac-uni').value.trim() || 'UNIL', ordre
+                cle, nom, sous_titre: $('fac-sous').value.trim() || null,
+                universite: $('fac-uni').value.trim() || 'UNIL', ordre, image
             }]).select())) return;
-            $('fac-nom').value = ''; $('fac-sous').value = '';
+            $('fac-nom').value = ''; $('fac-sous').value = ''; $('fac-image').value = '';
             chargerCatalogueAdmin();
         });
 
