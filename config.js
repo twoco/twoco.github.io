@@ -19,7 +19,7 @@ const CONFIG = {
 
     // Où les tuteurs envoient la commission de 5 CHF (TWINT), affiché sur la page « Devenir tuteur »
     TWINT_NUMERO: '077 464 65 13',
-    TWINT_NOM: 'Nathan Coquoz',
+    TWINT_NOM: 'Twoco, au nom de Nathan Coquoz',
 
     // Lieux proposés dans le formulairee
     LIEUX: [
