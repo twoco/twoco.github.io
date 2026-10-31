@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Sécurité : le navigateur ne charge que les fichiers du site et ne se connecte qu'à Supabase -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://wjkhkxtdlrphouwsnicg.supabase.co; font-src 'self'; connect-src 'self' https://wjkhkxtdlrphouwsnicg.supabase.co wss://wjkhkxtdlrphouwsnicg.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>Devenir tuteur – Twoco</title>
     <meta name="description" content="Tu es en 2e année ou plus à l'UNIL ? Donne des cours d'appui aux étudiants de 1re année. Inscription gratuite en 2 minutes.">
     <link rel="canonical" href="https://twoco.ch/inscription.html">

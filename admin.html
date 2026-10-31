@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Sécurité : le navigateur ne charge que les fichiers du site et ne se connecte qu'à Supabase -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://wjkhkxtdlrphouwsnicg.supabase.co; font-src 'self'; connect-src 'self' https://wjkhkxtdlrphouwsnicg.supabase.co wss://wjkhkxtdlrphouwsnicg.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin – Twoco</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -231,6 +233,9 @@
     </div>
 
     <script>
+        // L'admin ne doit jamais s'afficher à l'intérieur d'un autre site (protection contre le « clickjacking »)
+        if (window.top !== window.self) window.top.location = window.location.href;
+
         const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
         const $ = id => document.getElementById(id);
@@ -476,7 +481,8 @@
         // Fichier CSV (s'ouvre dans Excel) : une ligne par paiement + total
         $('export-paiements').addEventListener('click', () => {
             if (!paiements.length) return alert('Aucun paiement à télécharger.');
-            const cellule = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+            // Un texte qui commence par = + - @ serait lu comme une formule par Excel : on le neutralise
+            const cellule = v => { let t = String(v ?? ''); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
             const lignes = [['Date', 'Tuteur', 'Montant (CHF)', 'Remarque']]
                 .concat([...paiements].reverse().map(p => [p.date, p.tuteur_nom, Number(p.montant).toFixed(2), p.remarque || '']))
                 .concat([['', 'TOTAL', paiements.reduce((s, p) => s + Number(p.montant), 0).toFixed(2), '']]);
