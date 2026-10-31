@@ -49,6 +49,13 @@
             .hero h1 { font-size: 1.7rem; }
             .hero p { font-size: .95rem; }
         }
+        /* Page d'une faculté : sa propre image (choisie dans l'admin) à la place de l'Amphimax */
+        .hero.image-fac { background-position: center 50%;
+            background-image: linear-gradient(90deg, rgba(13,23,46,.72) 0%, rgba(13,23,46,.35) 45%, rgba(13,23,46,0) 70%), var(--image-fac); }
+        @media (max-width: 700px) {
+            .hero.image-fac { background-position: center;
+                background-image: linear-gradient(180deg, rgba(13,23,46,.65) 0%, rgba(13,23,46,.2) 60%, rgba(13,23,46,0) 100%), var(--image-fac); }
+        }
         .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 
         /* Accueil : un gros bouton par faculté, avec aperçu grisé */
@@ -112,7 +119,7 @@
         <a href="#" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a>
         <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
     </div>
-    <div class="hero">
+    <div class="hero" id="hero">
         <h1 id="hero-titre"> Cours d'appui entre étudiants</h1>
         <p id="hero-sous">Des Tuteurs de 2ème année à ta disposition pour t'aider. Choisis ta faculté</p>
     </div>
@@ -359,8 +366,10 @@
                     .then(({ error }) => { if (error) console.error(error); });
         });
 
-        function montrer(vue, titre, sous, retourHref, retourTexte, insHref) {
+        function montrer(vue, titre, sous, retourHref, retourTexte, insHref, image) {
             ['vue-facs', 'vue-annees', 'vue-liste'].forEach(v => { $(v).hidden = v !== vue; });
+            $('hero').classList.toggle('image-fac', !!image);
+            if (image) $('hero').style.setProperty('--image-fac', `url(${JSON.stringify(image)})`);
             $('hero-titre').textContent = titre;
             $('hero-sous').textContent = sous;
             $('btn-ins').href = insHref;
@@ -378,12 +387,12 @@
                 const unique = annees.length === 1;
                 montrer('vue-liste', 'Tuteurs ' + f.nom, unique ? (f.sous_titre || '') : f.annees[annee].nom,
                     unique ? '#' : '#' + cle, unique ? '← Toutes les facultés' : '← ' + f.nom,
-                    'inscription.html?fac=' + encodeURIComponent(cle) + '&annee=' + encodeURIComponent(annee));
+                    'inscription.html?fac=' + encodeURIComponent(cle) + '&annee=' + encodeURIComponent(annee), f.image);
                 if (remonter) afficherListe(cle, annee);
             } else if (f) {
                 rendreAnnees(cle);
                 montrer('vue-annees', 'Tuteurs ' + f.nom, 'Choisis ton année', '#', '← Toutes les facultés',
-                    'inscription.html?fac=' + encodeURIComponent(cle));
+                    'inscription.html?fac=' + encodeURIComponent(cle), f.image);
             } else {
                 rendreAccueil();
                 montrer('vue-facs', "Cours d'appui entre étudiants", "Des tuteurs de 2ème année à ta disposition pour t'aider. Choisis ta faculté", null, '', 'inscription.html');

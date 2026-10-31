@@ -15,13 +15,13 @@ async function chargerCatalogue(db) {
     return { facultes: f.data, matieres: m.data };
 }
 
-// Construit { cle: { nom, sous_titre, universite, annees: { '1': { nom, matieres } } } }
+// Construit { cle: { nom, sous_titre, universite, image, annees: { '1': { nom, matieres } } } }
 // "matieres" est une liste simple, ou un objet { semestre: [...] } s'il y a des semestres.
 // Les facultés sans matière sont ignorées (sauf avecVides).
 function arbreCatalogue({ facultes, matieres }, avecVides = false) {
     const arbre = {};
     facultes.forEach(f => {
-        arbre[f.cle] = { nom: f.nom, sous_titre: f.sous_titre, universite: f.universite, annees: {} };
+        arbre[f.cle] = { nom: f.nom, sous_titre: f.sous_titre, universite: f.universite, image: f.image || null, annees: {} };
     });
     matieres.forEach(m => {
         const f = arbre[m.faculte_cle];
