@@ -41,9 +41,9 @@
         .card { max-width: 560px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); line-height: 1.5; }
         h2 { margin: 0 0 6px; font-size: 1.6rem; }
         .intro { margin: 0; color: #64748b; }
-        .etape { margin-top: 36px; padding-top: 28px; border-top: 1px solid #e2e8f0; }
-        .etape h3 { margin: 0; font-size: 1.05rem; }
-        .etape h3 span { color: var(--blue); margin-right: 6px; }
+        /* Chaque partie : titre en petites capitales sur une fine ligne foncée */
+        .etape { margin-top: 44px; }
+        .etape h3 { margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--dark); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
         label, legend { display: block; font-weight: 600; font-size: 0.95rem; margin-top: 22px; padding: 0; }
         fieldset { border: none; padding: 0; margin: 26px 0 0; min-width: 0; }
         legend { margin-top: 0; float: left; width: 100%; }
@@ -93,7 +93,7 @@
             <p class="intro">3 étapes, environ 2 minutes. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
 
             <div class="etape">
-                <h3><span>1</span>Toi</h3>
+                <h3>Tes informations</h3>
                 <div class="row">
                     <div><label for="prenom">Prénom</label><input type="text" id="prenom" maxlength="40" autocomplete="given-name" required></div>
                     <div><label for="nom">Nom</label><input type="text" id="nom" maxlength="40" autocomplete="family-name" required></div>
@@ -103,7 +103,7 @@
             </div>
 
             <div class="etape">
-                <h3><span>2</span>Tes cours</h3>
+                <h3>Tes cours</h3>
                 <fieldset>
                     <legend>Faculté</legend>
                     <div class="choix" id="fac-box"><p class="hint">Chargement...</p></div>
@@ -132,7 +132,7 @@
             </div>
 
             <div class="etape">
-                <h3><span>3</span>Contact</h3>
+                <h3>Contact</h3>
                 <label for="whatsapp">Numéro WhatsApp <span class="aide">Les élèves te contactent directement par WhatsApp.</span></label>
                 <input type="tel" id="whatsapp" maxlength="25" autocomplete="tel" placeholder="079 123 45 67" required>
 
@@ -141,7 +141,7 @@
             </div>
 
             <div class="etape">
-                <h3>En t'inscrivant</h3>
+                <h3>Confirmation</h3>
                 <ul class="resume">
                     <li>Ton prénom, ton nom, ton WhatsApp et tes cours sont <strong>visibles sur le site</strong>. Tu peux demander leur retrait à tout moment.</li>
                     <li>Tu es <strong>au moins en 2e année</strong> et tu as réussi les matières que tu proposes.</li>
