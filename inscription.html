@@ -66,6 +66,12 @@
         .consent { display: flex; gap: 12px; align-items: flex-start; font-weight: 600; font-size: 0.95rem; margin-top: 12px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
         .consent input { margin-top: 4px; width: 18px; height: 18px; flex-shrink: 0; }
         .consent a { color: var(--blue); }
+        .consent .suite { display: block; margin-top: 6px; font-weight: 400; }
+        /* Bouton ⓘ : rond avec un « i », ouvre l'explication en dessous */
+        .info { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 4px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 0.7rem; font-weight: 700; font-style: normal; line-height: 1; vertical-align: 1px; cursor: pointer; color: var(--blue); }
+        .info:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .explication { display: block; margin-top: 8px; padding: 8px 10px; background: #eff6ff; border-radius: 6px; font-weight: 400; font-size: 0.88rem; }
+        .explication[hidden] { display: none; }
         button { width: 100%; background: var(--blue); color: white; border: none; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 1rem; margin-top: 24px; cursor: pointer; }
         button:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
         .manque { margin: 10px 0 0; text-align: center; color: #64748b; font-size: 0.85rem; }
@@ -153,7 +159,9 @@
                 </label>
                 <label class="consent">
                     <input type="checkbox" id="contribution">
-                    <span>J'accepte de verser <strong>5 CHF par TWINT, une seule fois</strong>, après mon premier cours avec un élève venu du site. <span class="aide">Ce versement me donne le badge « Vérifié ».</span></span>
+                    <span>J'accepte de verser une <strong>commission de 5 CHF par TWINT, une seule fois</strong>, après avoir donné mon premier cours via Twoco <span class="info" tabindex="0" role="button" aria-expanded="false" aria-controls="info-5chf" aria-label="Pourquoi ces 5 CHF ?">i</span>.
+                        <span class="explication" id="info-5chf" hidden>Pour remercier la plateforme Twoco de m'avoir permis de donner mon premier cours :)</span>
+                        <span class="suite">Ce versement me donne le badge «&nbsp;Vérifié&nbsp;».</span></span>
                 </label>
             </div>
 
@@ -176,6 +184,20 @@
     </footer>
 
     <script>
+        // Bouton ⓘ dans une case à cocher : ouvre ou ferme l'explication sans cocher la case
+        function basculerInfo(info) {
+            const bulle = document.getElementById(info.getAttribute('aria-controls'));
+            bulle.hidden = !bulle.hidden;
+            info.setAttribute('aria-expanded', String(!bulle.hidden));
+        }
+        document.addEventListener('click', (e) => {
+            const info = e.target.closest('.info');
+            if (info) { e.preventDefault(); basculerInfo(info); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.info')) { e.preventDefault(); basculerInfo(e.target); }
+        });
+
         const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
         const $ = id => document.getElementById(id);
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
