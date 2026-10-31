@@ -175,7 +175,9 @@
 
         function rendreAccueil() {
             const prix = (CONFIG.PRIX_FIXE || 30) + ' CHF/h';
-            $('vue-facs').innerHTML = Object.entries(FAC).map(([cle, f]) => {
+            // Les facultés avec le plus de tuteurs en premier (à égalité : l'ordre choisi dans l'admin)
+            const facultes = Object.entries(FAC).sort(([a], [b]) => (nbFac(b) || 0) - (nbFac(a) || 0));
+            $('vue-facs').innerHTML = facultes.map(([cle, f]) => {
                 const premiere = Object.values(f.annees)[0];
                 const mini = matieresApercu(cle, aplat(premiere.matieres)).map(m => `
                     <div class="mini">
@@ -217,7 +219,6 @@
                 compteurs[t.faculte] = compteurs[t.faculte] || {};
                 compteurs[t.faculte][t.annee] = (compteurs[t.faculte][t.annee] || 0) + 1;
             });
-            route(false);
         }
 
         // Liste des tuteurs d'une faculté/année, avec filtre par matière et tri
@@ -402,14 +403,15 @@
         enregistrer(db, 'visite', { page: 'accueil' });
         (async () => {
             try {
-                FAC = arbreCatalogue(await chargerCatalogue(db));
+                // Facultés et nombre de tuteurs chargés en même temps : les cartes s'affichent directement dans le bon ordre
+                const [catalogue] = await Promise.all([chargerCatalogue(db), chargerCompteurs().catch(console.error)]);
+                FAC = arbreCatalogue(catalogue);
             } catch (e) {
                 console.error(e);
                 $('vue-facs').innerHTML = '<p class="msg">Impossible de charger les facultés. Réessaie dans un instant.</p>';
                 return;
             }
             route(true);
-            chargerCompteurs();
         })();
     </script>
 </body>
