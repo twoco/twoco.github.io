@@ -22,18 +22,13 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="fonts/inter.css?v=dev" rel="stylesheet">
     <link href="fonts/montserrat.css?v=dev" rel="stylesheet">
+    <link href="commun.css?v=dev" rel="stylesheet">
     <script src="vendor/supabase.js?v=dev"></script>
     <script src="config.js?v=dev"></script>
     <script src="catalogue.js?v=dev"></script>
     <script src="suivi.js?v=dev"></script>
     <style>
-        :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: var(--dark); }
-        [hidden] { display: none !important; }
-        .navbar { background-color: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
-        .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
-        .brand-title img { width: 1.3em; height: 1.3em; }
-        .brand-title .co { color: #4aa8ec; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
         /* Bande avec l'illustration de l'Amphimax (dégradé à gauche pour lire le texte) */
         .hero { display: flex; flex-direction: column; justify-content: flex-start; min-height: 380px; padding: 56px max(24px, calc((100% - 1100px) / 2 + 20px)); box-sizing: border-box; color: white; margin-bottom: 40px;
@@ -110,8 +105,6 @@
         .info { position: relative; cursor: pointer; font-weight: 700; }
         .info::after { content: attr(data-info); position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 200px; background: var(--dark); color: white; font-weight: 400; font-size: 0.8rem; line-height: 1.4; padding: 8px 10px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 5; }
         .info.ouvert::after { opacity: 1; }
-        footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
-        footer a { color: #cbd5e1; }
     </style>
 </head>
 <body>

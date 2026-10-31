@@ -10,16 +10,13 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="fonts/inter.css?v=dev" rel="stylesheet">
     <link href="fonts/montserrat.css?v=dev" rel="stylesheet">
+    <link href="commun.css?v=dev" rel="stylesheet">
     <script src="vendor/supabase.js?v=dev"></script>
     <script src="config.js?v=dev"></script>
     <script src="catalogue.js?v=dev"></script>
     <style>
-        :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
-        .navbar { background: var(--dark); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: white; }
-        .brand-title img { width: 1.3em; height: 1.3em; }
-        .brand-title .co { color: #4aa8ec; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; }
+        .brand-title { font-size: 1.5rem; }
         .navbar button { width: auto; margin: 0; padding: 8px 14px; background: transparent; border: 1px solid #475569; color: white; }
         .wrap { max-width: 1400px; margin: 0 auto; padding: 0 20px 30px; }
         /* Deux colonnes indépendantes : tuteurs à gauche, facultés et matières à droite */
@@ -121,7 +118,6 @@
         .miniature { display: block; width: 100%; max-width: 320px; height: 70px; object-fit: cover; border-radius: 8px; margin-top: 10px; }
         .ajout-fac { grid-template-columns: 2fr 2fr 1fr; border-top: none; margin-top: 8px; padding-top: 0; }
         @media (max-width: 600px) { .ajout, .ajout-fac { grid-template-columns: 1fr 1fr; } }
-        [hidden] { display: none !important; }
         body.associe .admin-seul { display: none !important; }
         .bandeau-role { background: #fef3c7; color: #78350f; border-radius: 10px; padding: 10px 14px; margin: 16px 0 0; font-size: 0.9rem; }
     </style>

@@ -1,0 +1,12 @@
+/* Style commun à toutes les pages : couleurs, en-tête avec le logo, pied de page */
+:root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; --white: #ffffff; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
+[hidden] { display: none !important; }
+
+.navbar { background: var(--dark); padding: 15px 20px; }
+.brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
+.brand-title img { width: 1.3em; height: 1.3em; }
+.brand-title .co { color: #4aa8ec; }
+
+footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
+footer a { color: #cbd5e1; }
