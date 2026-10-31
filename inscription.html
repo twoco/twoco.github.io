@@ -68,8 +68,9 @@
         .consent a { color: var(--blue); }
         .consent .suite { display: block; margin-top: 6px; font-weight: 400; }
         /* Bouton ⓘ : rond avec un « i », ouvre l'explication en dessous */
-        .info { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 4px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 0.7rem; font-weight: 700; font-style: normal; line-height: 1; vertical-align: 1px; cursor: pointer; color: var(--blue); }
-        .info:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .info { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 4px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 0.7rem; font-weight: 700; font-style: normal; line-height: 1; vertical-align: 1px; cursor: pointer; color: var(--dark); }
+        .info:focus { outline: none; }
+        .info:focus-visible { background: #e2e8f0; }
         .explication { display: block; margin-top: 8px; padding: 8px 10px; background: #eff6ff; border-radius: 6px; font-weight: 400; font-size: 0.88rem; }
         .explication[hidden] { display: none; }
         button { width: 100%; background: var(--blue); color: white; border: none; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 1rem; margin-top: 24px; cursor: pointer; }
@@ -160,7 +161,7 @@
                 <label class="consent">
                     <input type="checkbox" id="contribution">
                     <span>J'accepte de verser une <strong>commission de 5 CHF par TWINT, une seule fois</strong>, après avoir donné mon premier cours via Twoco <span class="info" tabindex="0" role="button" aria-expanded="false" aria-controls="info-5chf" aria-label="Pourquoi ces 5 CHF ?">i</span>.
-                        <span class="explication" id="info-5chf" hidden>Pour remercier la plateforme Twoco de m'avoir permis de donner mon premier cours :)</span>
+                        <span class="explication" id="info-5chf" hidden>Un petit merci à Twoco de m'avoir permis de trouver mon premier élève&nbsp;😊</span>
                         <span class="suite">Ce versement me donne le badge «&nbsp;Vérifié&nbsp;».</span></span>
                 </label>
             </div>
