@@ -33,6 +33,11 @@
         .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
         .brand-title img { width: 1.3em; height: 1.3em; }
         .brand-title .co { color: #4aa8ec; }
+        /* Bande avec l'illustration d'un cours d'appui */
+        .bande { height: 370px; background-color: #3b4f8f; background-position: center 80%; background-size: cover;
+            background-image: url('bande-cours.jpg');
+            background-image: image-set(url('bande-cours.webp') type('image/webp'), url('bande-cours.jpg') type('image/jpeg')); }
+        @media (max-width: 700px) { .bande { height: 190px; background-position: 50% 60%; } }
         .card { max-width: 560px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); line-height: 1.5; }
         h2 { margin: 0 0 6px; font-size: 1.6rem; }
         .intro { margin: 0; color: #64748b; }
@@ -79,6 +84,8 @@
 </head>
 <body>
     <div class="navbar"><a href="index.html" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a></div>
+
+    <div class="bande" role="img" aria-label="Illustration : deux étudiants pendant un cours d'appui à la bibliothèque"></div>
 
     <div class="card">
         <form id="formulaire" novalidate>
