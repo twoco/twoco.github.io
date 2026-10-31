@@ -43,7 +43,7 @@
             .hero h1 { font-size: 1.7rem; }
             .hero p { font-size: .95rem; }
         }
-        /* Page d'une faculté : sa propre image (choisie dans l'admin) à la place de l'Amphimax */
+        /* Image choisie dans l'admin (bande de l'accueil ou d'une faculté) à la place de l'Amphimax */
         .hero.image-fac { background-position: center 50%;
             background-image: linear-gradient(90deg, rgba(13,23,46,.72) 0%, rgba(13,23,46,.35) 45%, rgba(13,23,46,0) 70%), var(--image-fac); }
         @media (max-width: 700px) {
@@ -159,6 +159,7 @@
         const existe = (obj, cle) => Object.prototype.hasOwnProperty.call(obj, cle);
 
         let compteurs = null; // compteurs[faculte][annee] = nombre de tuteurs
+        let bandeAccueil = null; // image de la bande choisie dans l'admin (sinon l'Amphimax)
         const nbFac = cle => compteurs ? Object.values(compteurs[cle] || {}).reduce((s, n) => s + n, 0) : null;
         const nbAnnee = (cle, a) => compteurs ? ((compteurs[cle] || {})[a] || 0) : null;
         const badge = n => n === null ? '' : `<span class="fac-count">${n ? n + ' tuteur' + (n > 1 ? 's' : '') : 'Bientôt des tuteurs'}</span>`;
@@ -386,15 +387,15 @@
                 const unique = annees.length === 1;
                 montrer('vue-liste', 'Tuteurs ' + f.nom, unique ? (f.sous_titre || '') : f.annees[annee].nom,
                     unique ? '#' : '#' + cle, unique ? '← Toutes les facultés' : '← ' + f.nom,
-                    'inscription.html?fac=' + encodeURIComponent(cle) + '&annee=' + encodeURIComponent(annee), f.image);
+                    'inscription.html?fac=' + encodeURIComponent(cle) + '&annee=' + encodeURIComponent(annee), f.image || bandeAccueil);
                 if (remonter) afficherListe(cle, annee);
             } else if (f) {
                 rendreAnnees(cle);
                 montrer('vue-annees', 'Tuteurs ' + f.nom, 'Choisis ton année', '#', '← Toutes les facultés',
-                    'inscription.html?fac=' + encodeURIComponent(cle), f.image);
+                    'inscription.html?fac=' + encodeURIComponent(cle), f.image || bandeAccueil);
             } else {
                 rendreAccueil();
-                montrer('vue-facs', "Cours d'appui entre étudiants", "Des tuteurs de 2ème année à ta disposition pour t'aider. Choisis ta faculté", null, '', 'inscription.html');
+                montrer('vue-facs', "Cours d'appui entre étudiants", "Des tuteurs de 2ème année à ta disposition pour t'aider. Choisis ta faculté", null, '', 'inscription.html', bandeAccueil);
             }
             if (remonter) window.scrollTo(0, 0);
         }
@@ -404,8 +405,9 @@
         (async () => {
             try {
                 // Facultés et nombre de tuteurs chargés en même temps : les cartes s'affichent directement dans le bon ordre
-                const [catalogue] = await Promise.all([chargerCatalogue(db), chargerCompteurs().catch(console.error)]);
+                const [catalogue, , reglages] = await Promise.all([chargerCatalogue(db), chargerCompteurs().catch(console.error), chargerReglages(db)]);
                 FAC = arbreCatalogue(catalogue);
+                bandeAccueil = reglages.bande_accueil || null;
             } catch (e) {
                 console.error(e);
                 $('vue-facs').innerHTML = '<p class="msg">Impossible de charger les facultés. Réessaie dans un instant.</p>';

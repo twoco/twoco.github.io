@@ -200,6 +200,9 @@
                 </div>
 
                 <div class="colonne panneau" id="col-matieres">
+                    <h2 class="section">Images des bandes</h2>
+                    <p class="vide">L'image en haut de l'accueil et de la page « Devenir tuteur ». Une faculté avec sa propre image garde la sienne.</p>
+                    <div id="bandes"></div>
                     <h2 class="section">Facultés et matières</h2>
                     <p class="vide">Les changements apparaissent tout de suite sur le site.</p>
                     <div id="catalogue"></div>
@@ -655,7 +658,56 @@
             return cle;
         }
 
+        // ---------- Images des bandes du site (table Supabase "reglages")
+        const BANDES = [
+            { cle: 'bande_accueil', nom: 'Accueil', detail: 'aussi pour les facultés sans image', base: 'bande-amphimax.webp' },
+            { cle: 'bande_inscription', nom: 'Devenir tuteur', detail: '', base: 'bande-cours.webp' },
+        ];
+        let reglages = {};
+
+        async function chargerBandes() {
+            reglages = await chargerReglages(db);
+            $('bandes').innerHTML = BANDES.map(b => `
+                <div class="bloc">
+                    <div class="bloc-tete">
+                        <div>
+                            <h3>${esc(b.nom)}</h3>
+                            <p>${reglages[b.cle] ? 'Image choisie' : 'Image de base'}${b.detail ? ' · ' + esc(b.detail) : ''}</p>
+                            <img class="miniature" src="${esc(reglages[b.cle] || b.base)}" alt="Bande ${esc(b.nom)}">
+                        </div>
+                        ${reglages[b.cle] ? `<div class="actions"><button type="button" class="btn-n petit" data-bande-base="${b.cle}">Remettre l'image de base</button></div>` : ''}
+                    </div>
+                    <form class="ajout" data-bande="${b.cle}">
+                        <div class="image-champ"><label>Changer l'image</label><input type="file" name="image" accept="image/*" required></div>
+                        <button type="submit">Enregistrer</button>
+                    </form>
+                </div>`).join('');
+        }
+
+        $('bandes').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target.closest('form[data-bande]');
+            const fichier = form && form.image.files[0];
+            if (!fichier) return;
+            const cle = form.dataset.bande;
+            const url = await envoyerImage(cle.replace('_', '-'), fichier);
+            if (!url) return;
+            if (!ok(await db.from('reglages').upsert({ cle, valeur: url }).select())) return;
+            supprimerImage(reglages[cle]);
+            chargerBandes();
+        });
+
+        $('bandes').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-bande-base]');
+            if (!btn || !confirm('Remettre l\'image de base ?')) return;
+            const cle = btn.dataset.bandeBase;
+            if (!ok(await db.from('reglages').delete().eq('cle', cle).select())) return;
+            supprimerImage(reglages[cle]);
+            chargerBandes();
+        });
+
         async function chargerCatalogueAdmin() {
+            chargerBandes();
             try {
                 const [c, s] = await Promise.all([chargerCatalogue(db), db.rpc('stats_totaux')]);
                 cat = c;
