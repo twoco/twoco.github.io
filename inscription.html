@@ -73,15 +73,15 @@
         .info:focus-visible { background: #e2e8f0; }
         .explication { display: block; margin-top: 8px; padding: 8px 10px; background: #eff6ff; border-radius: 6px; font-weight: 400; font-size: 0.88rem; }
         .explication[hidden] { display: none; }
-        /* Chaque question dans sa carte, avec une icône dans un rond bleu clair */
-        .card { background: #f8fafc; }
-        .etape { margin-top: 36px; }
-        .q { position: relative; margin-top: 16px !important; padding: 20px 20px 20px 70px; background: white; border: 1px solid #dbe3ee; border-radius: 10px; }
-        .q::before { content: attr(data-ico); position: absolute; left: 18px; top: 18px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #eff6ff; border-radius: 50%; font-size: 1.1rem; }
+        /* Chaque question : icône dans un rond bleu clair à gauche, fine ligne entre les questions */
+        .etape { margin-top: 40px; }
+        .q { position: relative; margin-top: 0 !important; padding: 22px 0 22px 56px; border-bottom: 1px solid #e2e8f0; }
+        .etape .q:last-of-type { border-bottom: none; }
+        .q::before { content: attr(data-ico); position: absolute; left: 0; top: 20px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: #eff6ff; border-radius: 50%; font-size: 1.15rem; }
         .q legend, .q > label:first-child, .q .row label { margin-top: 0; font-size: 1.02rem; }
         .choix { gap: 10px; }
         .chip span { padding: 10px 16px; font-size: 0.95rem; }
-        @media (max-width: 600px) { .card { background: white; } .q { padding: 16px; } .q::before { position: static; margin-bottom: 10px; } }
+        @media (max-width: 600px) { .q { padding-left: 48px; } .q::before { width: 34px; height: 34px; font-size: 1rem; } }
         /* Où payer la commission (numéro TWINT + bouton Copier) */
         .twint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 8px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; text-align: left; }
         .twint > span { flex: 1 1 260px; }
