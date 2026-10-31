@@ -22,17 +22,12 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link href="fonts/inter.css?v=dev" rel="stylesheet">
     <link href="fonts/montserrat.css?v=dev" rel="stylesheet">
+    <link href="commun.css?v=dev" rel="stylesheet">
     <script src="vendor/supabase.js?v=dev"></script>
     <script src="config.js?v=dev"></script>
     <script src="catalogue.js?v=dev"></script>
     <script src="suivi.js?v=dev"></script>
     <style>
-        :root { --dark: #0d172e; --blue: #2563eb; --cyan: #38bdf8; --bg: #f8fafc; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
-        .navbar { background: var(--dark); padding: 15px 20px; }
-        .brand-title { display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: white; text-decoration: none; }
-        .brand-title img { width: 1.3em; height: 1.3em; }
-        .brand-title .co { color: #4aa8ec; }
         /* Bande avec l'illustration d'un cours d'appui */
         .bande { height: 370px; background-color: #3b4f8f; background-position: center 80%; background-size: cover;
             background-image: url('bande-cours.jpg');
@@ -92,13 +87,10 @@
         .manque:empty { display: none; }
         #erreur { color: #b91c1c; font-weight: 600; margin-top: 16px; display: none; }
         #succes { display: none; text-align: center; }
-        [hidden] { display: none !important; }
         .prix-fixe { margin-top: 22px; font-weight: 600; }
         .prix-fixe span { font-weight: 400; color: #64748b; }
         .hp { position: absolute; left: -9999px; }
         @media (max-width: 600px) { .card { margin: 0; padding: 28px 20px; border-radius: 0; box-shadow: none; } .row { flex-direction: column; gap: 0; } }
-        footer { margin-top: 80px; padding: 40px; text-align: center; background-color: var(--dark); color: #94a3b8; }
-        footer a { color: #cbd5e1; }
         a.retour { display: inline-block; margin-top: 16px; color: var(--blue); font-weight: 600; }
     </style>
 </head>
