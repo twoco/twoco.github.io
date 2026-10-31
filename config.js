@@ -17,6 +17,10 @@ const CONFIG = {
         droit: ['Droit pénal']
     },
 
+    // Où les tuteurs envoient la commission de 5 CHF (TWINT), affiché sur la page « Devenir tuteur »
+    TWINT_NUMERO: '077 464 65 13',
+    TWINT_NOM: 'Nathan Coquoz',
+
     // Lieux proposés dans le formulairee
     LIEUX: [
         'Campus UNIL (Internef/Amphimax)',

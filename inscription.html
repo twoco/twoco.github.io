@@ -73,6 +73,10 @@
         .info:focus-visible { background: #e2e8f0; }
         .explication { display: block; margin-top: 8px; padding: 8px 10px; background: #eff6ff; border-radius: 6px; font-weight: 400; font-size: 0.88rem; }
         .explication[hidden] { display: none; }
+        /* Où payer la commission (numéro TWINT + bouton Copier) */
+        .twint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 8px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; text-align: left; }
+        .twint > span { flex: 1 1 260px; }
+        .twint .copier { width: auto; margin: 0; padding: 8px 14px; background: white; color: var(--dark); border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
         button { width: 100%; background: var(--blue); color: white; border: none; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 1rem; margin-top: 24px; cursor: pointer; }
         button:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
         .manque { margin: 10px 0 0; text-align: center; color: #64748b; font-size: 0.85rem; }
@@ -164,6 +168,10 @@
                         <span class="explication" id="info-5chf" hidden>Un petit merci à Twoco de m'avoir permis de trouver mon premier élève&nbsp;😊</span>
                         <span class="suite">Ce versement me donne le badge «&nbsp;Vérifié&nbsp;».</span></span>
                 </label>
+                <div class="twint">
+                    <span>TWINT au <strong class="twint-numero"></strong> (<span class="twint-nom"></span>), avec ton prénom et ton nom en message.</span>
+                    <button type="button" class="copier" data-copie="twint">Copier le numéro</button>
+                </div>
             </div>
 
             <input type="text" id="site" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -176,6 +184,10 @@
         <div id="succes">
             <h2>Candidature envoyée</h2>
             <p>Merci ! Ton profil apparaîtra sur le site dès qu'il aura été validé.</p>
+            <div class="twint">
+                <span>Après ton premier cours via Twoco : <strong>5 CHF par TWINT</strong> au <strong class="twint-numero"></strong> (<span class="twint-nom"></span>), avec ton prénom et ton nom en message.</span>
+                <button type="button" class="copier" data-copie="twint">Copier le numéro</button>
+            </div>
             <a href="index.html" class="retour">Retour à l'accueil</a>
         </div>
     </div>
@@ -264,6 +276,16 @@
             if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
             afficherAnnees();
         })();
+
+        // Numéro TWINT pour la commission (pris dans config.js) + bouton Copier
+        document.querySelectorAll('.twint-numero').forEach(el => el.textContent = CONFIG.TWINT_NUMERO);
+        document.querySelectorAll('.twint-nom').forEach(el => el.textContent = CONFIG.TWINT_NOM);
+        document.querySelectorAll('.copier').forEach(bouton => bouton.addEventListener('click', async () => {
+            const numero = CONFIG.TWINT_NUMERO.replace(/\s/g, '');
+            try { await navigator.clipboard.writeText(numero); bouton.textContent = 'Copié ✓'; }
+            catch (e) { bouton.textContent = numero; }
+            setTimeout(() => { bouton.textContent = 'Copier le numéro'; }, 2500);
+        }));
 
         remplirChoix('lieux-box', CONFIG.LIEUX, 'lieu');
         if (CONFIG.PRIX_FIXE) {
