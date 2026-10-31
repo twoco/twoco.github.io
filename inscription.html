@@ -73,6 +73,15 @@
         .info:focus-visible { background: #e2e8f0; }
         .explication { display: block; margin-top: 8px; padding: 8px 10px; background: #eff6ff; border-radius: 6px; font-weight: 400; font-size: 0.88rem; }
         .explication[hidden] { display: none; }
+        /* Chaque question : icône dans un rond bleu clair à gauche, fine ligne entre les questions */
+        .etape { margin-top: 40px; }
+        .q { position: relative; margin-top: 0 !important; padding: 22px 0 22px 56px; border-bottom: 1px solid #e2e8f0; }
+        .etape .q:last-of-type { border-bottom: none; }
+        .q::before { content: attr(data-ico); position: absolute; left: 0; top: 20px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: #eff6ff; border-radius: 50%; font-size: 1.15rem; }
+        .q legend, .q > label:first-child, .q .row label { margin-top: 0; font-size: 1.02rem; }
+        .choix { gap: 10px; }
+        .chip span { padding: 10px 16px; font-size: 0.95rem; }
+        @media (max-width: 600px) { .q { padding-left: 48px; } .q::before { width: 34px; height: 34px; font-size: 1rem; } }
         /* Où payer la commission (numéro TWINT + bouton Copier) */
         .twint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 8px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; text-align: left; }
         .twint > span { flex: 1 1 260px; }
@@ -105,33 +114,33 @@
 
             <div class="etape">
                 <h3>Tes informations</h3>
-                <div class="row">
+                <div class="q" data-q="nom" data-ico="👤"><div class="row">
                     <div><label for="prenom">Prénom</label><input type="text" id="prenom" maxlength="40" autocomplete="given-name" required></div>
                     <div><label for="nom">Nom</label><input type="text" id="nom" maxlength="40" autocomplete="family-name" required></div>
-                </div>
-                <label for="email">E-mail universitaire <span class="aide">Se termine par @unil.ch. Jamais affiché sur le site.</span></label>
-                <input type="email" id="email" maxlength="100" autocomplete="email" placeholder="prenom.nom@unil.ch" required>
+                </div></div>
+                <div class="q" data-q="email" data-ico="✉️"><label for="email">E-mail universitaire <span class="aide">Se termine par @unil.ch. Jamais affiché sur le site.</span></label>
+                <input type="email" id="email" maxlength="100" autocomplete="email" placeholder="prenom.nom@unil.ch" required></div>
             </div>
 
             <div class="etape">
                 <h3>Tes cours</h3>
-                <fieldset>
-                    <legend>Faculté</legend>
+                <fieldset class="q" data-q="faculte" data-ico="🎓">
+                    <legend>Dans quelle faculté es-tu ?</legend>
                     <div class="choix" id="fac-box"><p class="hint">Chargement...</p></div>
                 </fieldset>
 
-                <fieldset id="annee-fs" hidden>
-                    <legend>Année des cours</legend>
+                <fieldset id="annee-fs" class="q" data-q="annee" data-ico="📅" hidden>
+                    <legend>Pour quelle année ?</legend>
                     <div class="choix" id="annee-box"></div>
                 </fieldset>
 
-                <fieldset>
-                    <legend>Matières <span class="aide">Choisis toutes celles que tu peux expliquer.</span></legend>
+                <fieldset class="q" data-q="matiere" data-ico="📚">
+                    <legend>Quelles matières peux-tu expliquer ? <span class="aide">Choisis-en une ou plusieurs.</span></legend>
                     <div id="matieres-box"></div>
                 </fieldset>
 
-                <fieldset>
-                    <legend>Où donnes-tu les cours ?</legend>
+                <fieldset class="q" data-q="lieu" data-ico="📍">
+                    <legend>Où donnes-tu les cours ? <span class="aide">Choisis un ou plusieurs lieux.</span></legend>
                     <div class="choix" id="lieux-box"></div>
                 </fieldset>
 
@@ -144,11 +153,11 @@
 
             <div class="etape">
                 <h3>Contact</h3>
-                <label for="whatsapp">Numéro WhatsApp <span class="aide">Les élèves te contactent directement par WhatsApp.</span></label>
-                <input type="tel" id="whatsapp" maxlength="25" autocomplete="tel" placeholder="079 123 45 67" required>
+                <div class="q" data-q="whatsapp" data-ico="💬"><label for="whatsapp">Ton numéro WhatsApp <span class="aide">Les élèves te contactent directement par WhatsApp.</span></label>
+                <input type="tel" id="whatsapp" maxlength="25" autocomplete="tel" placeholder="079 123 45 67" required></div>
 
-                <label for="langues">Autres langues que le français <span class="hint">(facultatif)</span></label>
-                <input type="text" id="langues" maxlength="100" placeholder="Anglais, Italien…">
+                <div class="q" data-q="langues" data-ico="🗣️"><label for="langues">Autres langues que le français <span class="hint">(facultatif)</span></label>
+                <input type="text" id="langues" maxlength="100" placeholder="Anglais, Italien…"></div>
             </div>
 
             <div class="etape">
