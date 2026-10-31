@@ -21,7 +21,7 @@ const CONFIG = {
     TWINT_NUMERO: '077 464 65 13',
     TWINT_NOM: 'Twoco, au nom de Nathan Coquoz',
 
-    // Lieux proposés dans le formulairee
+    // Lieux proposés dans le formulaire d'inscription
     LIEUX: [
         'Campus UNIL (Internef/Amphimax)',
         'Bibliothèque BU',

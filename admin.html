@@ -124,7 +124,6 @@
         [hidden] { display: none !important; }
         body.associe .admin-seul { display: none !important; }
         .bandeau-role { background: #fef3c7; color: #78350f; border-radius: 10px; padding: 10px 14px; margin: 16px 0 0; font-size: 0.9rem; }
-        .refus { max-width: 420px; margin: 80px auto; text-align: center; }
     </style>
 </head>
 <body>
@@ -302,7 +301,6 @@
                         ${t.langues ? `<p><strong>Langues :</strong> ${esc(t.langues)}</p>` : ''}
                         ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
-                        ${t.notes ? `<p><strong>Notes :</strong> ${Object.entries(t.notes).map(([m, n]) => esc(m) + ' ' + esc(n)).join(' | ')}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
                     </div>
                     <div class="actions">${actions.map(a =>
