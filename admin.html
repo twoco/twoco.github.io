@@ -694,7 +694,7 @@
                         <div class="bloc-tete">
                             <div>
                                 <h3>${esc(f.nom)} <span class="nb-clics" title="Clics sur la carte de cette faculté (accueil)">${clicsFacultes[f.cle] || 0} clics</span></h3>
-                                <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)}</p>
+                                <p>${esc(f.sous_titre || '')}${f.sous_titre ? ' · ' : ''}${esc(f.universite)} · place ${esc(Math.max(1, Number(f.ordre) || 1))}</p>
                                 ${f.image ? `<img class="miniature" src="${esc(f.image)}" alt="Image de la bande ${esc(f.nom)}">` : ''}
                             </div>
                             <div class="actions">
@@ -706,6 +706,7 @@
                             <div><label>Nom affiché</label><input name="nom" value="${esc(f.nom)}" maxlength="40" required></div>
                             <div><label>Sous-titre</label><input name="sous_titre" value="${esc(f.sous_titre || '')}" maxlength="80"></div>
                             <div><label>Université</label><input name="universite" value="${esc(f.universite)}" maxlength="20" required></div>
+                            <div><label>Place sur l'accueil <span class="vide">(à nombre de tuteurs égal)</span></label><input name="place" type="number" min="1" max="99" value="${esc(Math.max(1, Number(f.ordre) || 1))}" required></div>
                             <div class="image-champ"><label>${f.image ? 'Changer l\'image de la bande' : 'Image de la bande'} <span class="vide">(facultatif)</span></label><input type="file" name="image" accept="image/*">
                                 ${f.image ? '<label class="retirer"><input type="checkbox" name="retirer"> Retirer l\'image (l\'Amphimax s\'affichera à la place)</label>' : ''}</div>
                             <button type="submit">Enregistrer</button>
@@ -764,7 +765,8 @@
                 const nom = modif.nom.value.trim();
                 if (!nom) return;
                 const ancienne = (cat.facultes.find(x => x.cle === modif.dataset.modif) || {}).image || null;
-                const changements = { nom, sous_titre: modif.sous_titre.value.trim() || null, universite: modif.universite.value.trim() || 'UNIL' };
+                const changements = { nom, sous_titre: modif.sous_titre.value.trim() || null, universite: modif.universite.value.trim() || 'UNIL',
+                    ordre: Math.max(1, Number(modif.place.value) || 1) };
                 const fichier = modif.image.files[0];
                 if (fichier) {
                     const url = await envoyerImage(modif.dataset.modif, fichier);
