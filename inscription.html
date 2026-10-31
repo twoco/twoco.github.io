@@ -96,7 +96,7 @@
 
     <main>
 
-    <div class="bande" role="img" aria-label="Illustration : deux étudiants pendant un cours d'appui à la bibliothèque"></div>
+    <div class="bande" id="bande" role="img" aria-label="Illustration : deux étudiants pendant un cours d'appui à la bibliothèque"></div>
 
     <div class="card">
         <form id="formulaire" novalidate>
@@ -283,6 +283,11 @@
             if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
             afficherAnnees();
         })();
+
+        // Image de la bande choisie dans l'admin (sinon l'illustration de base)
+        chargerReglages(db).then(r => {
+            if (r.bande_inscription) $('bande').style.backgroundImage = `url(${JSON.stringify(r.bande_inscription)})`;
+        });
 
         // Numéro TWINT pour la commission (pris dans config.js) + bouton Copier
         document.querySelectorAll('.twint-numero').forEach(el => el.textContent = CONFIG.TWINT_NUMERO);

@@ -38,3 +38,16 @@ function arbreCatalogue({ facultes, matieres }, avecVides = false) {
     if (!avecVides) Object.keys(arbre).forEach(c => { if (!Object.keys(arbre[c].annees).length) delete arbre[c]; });
     return arbre;
 }
+
+// Réglages du site (table Supabase "reglages" : cle -> valeur), ex. images des bandes.
+// En cas d'erreur (table absente, réseau), on garde les images de base.
+async function chargerReglages(db) {
+    try {
+        const { data, error } = await db.from('reglages').select('cle, valeur');
+        if (error) throw error;
+        return Object.fromEntries((data || []).map(r => [r.cle, r.valeur]));
+    } catch (e) {
+        console.error(e);
+        return {};
+    }
+}
