@@ -33,6 +33,8 @@
         .card { max-width: 560px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); line-height: 1.5; }
         h1, h2 { margin: 0 0 6px; font-size: 1.6rem; }
         .intro { margin: 0; color: #64748b; }
+        .intro.deja { margin-top: 8px; font-size: 0.85rem; }
+        .intro a { color: var(--blue); }
         /* Chaque partie : titre en petites capitales sur une fine ligne foncée */
         .etape { margin-top: 44px; }
         .etape h2 { margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--dark); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
@@ -102,6 +104,7 @@
         <form id="formulaire" novalidate>
             <h1>Devenir tuteur</h1>
             <p class="intro">Environ 2 minutes. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
+            <p class="intro deja">Déjà inscrit ? Pour modifier ton profil, remplis à nouveau ce formulaire avec le même numéro WhatsApp, puis confirme par e-mail à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a> depuis ton adresse universitaire.</p>
 
             <div class="etape">
                 <h2>Tes informations</h2>
@@ -282,6 +285,7 @@
             const depart = cles.includes(voulueFac) ? voulueFac : (cles.length === 1 ? cles[0] : null);
             if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
             afficherAnnees();
+            majBouton(); // la faculté peut être cochée d'office : on met à jour « Il manque »
         })();
 
         // Image de la bande choisie dans l'admin (sinon l'illustration de base)
@@ -325,6 +329,9 @@
             if (!$('prenom').value.trim()) manque.push('prénom');
             if (!$('nom').value.trim()) manque.push('nom');
             if (!emailValide($('email').value.trim().toLowerCase())) manque.push(`e-mail ${CONFIG.EMAIL_DOMAINE}`);
+            if (!document.querySelector('input[name="faculte"]:checked')) manque.push('faculté');
+            if (!document.querySelector('input[name="matiere"]:checked')) manque.push('matières');
+            if (!document.querySelector('input[name="lieu"]:checked')) manque.push('lieux des cours');
             if (!normaliserTel($('whatsapp').value)) manque.push('numéro WhatsApp');
             if (!$('accord').checked) manque.push('la case des CGU');
             if (!$('contribution').checked) manque.push('la case des 5 CHF');
