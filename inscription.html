@@ -306,6 +306,7 @@
             if (depart) document.querySelector(`input[name="faculte"][value="${depart}"]`).checked = true;
             afficherAnnees();
             majBouton(); // la faculté peut être cochée d'office : on met à jour « Il manque »
+            reprendreCandidature();
         })();
 
         // Image de la bande choisie dans l'admin (sinon l'illustration de base)
@@ -421,6 +422,7 @@
             envoiEnCours = false;
             majBouton();
             if (!ok) return;
+            memoriser();
             $('formulaire').hidden = true;
             $('code-email').textContent = email;
             $('code').value = '';
@@ -434,6 +436,41 @@
             { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         let candidature = null;
         let attenteRenvoi = null;
+
+        // Si la page est rechargée pendant l'étape du code, on reprend là où on en était.
+        // Gardé seulement dans cet onglet (sessionStorage), 30 minutes au plus, effacé à l'envoi.
+        const CLE_ATTENTE = 'twoco-candidature-en-attente';
+        function memoriser() {
+            try { sessionStorage.setItem(CLE_ATTENTE, JSON.stringify({ candidature, depuis: Date.now() })); } catch (e) {}
+        }
+        function oublier() {
+            try { sessionStorage.removeItem(CLE_ATTENTE); } catch (e) {}
+        }
+        function reprendreCandidature() {
+            let sauvegarde = null;
+            try { sauvegarde = JSON.parse(sessionStorage.getItem(CLE_ATTENTE) || 'null'); } catch (e) {}
+            if (!sauvegarde || !sauvegarde.candidature || Date.now() - sauvegarde.depuis > 30 * 60 * 1000) { oublier(); return; }
+            candidature = sauvegarde.candidature;
+            // Le formulaire est rempli à nouveau, au cas où la personne veut modifier quelque chose
+            $('prenom').value = candidature.prenom;
+            $('nom').value = candidature.nom;
+            $('email').value = candidature.email;
+            $('whatsapp').value = '+' + candidature.whatsapp;
+            $('langues').value = candidature.langues || '';
+            const cocher = (nom, v) => { const i = document.querySelector(`input[name="${nom}"][value="${CSS.escape(v)}"]`); if (i) i.checked = true; };
+            cocher('faculte', candidature.faculte);
+            afficherAnnees();
+            cocher('annee', candidature.annee);
+            afficherMatieres();
+            candidature.matieres.split(', ').forEach(m => cocher('matiere', m));
+            candidature.lieu.split(', ').forEach(l => cocher('lieu', l));
+            $('accord').checked = true;
+            $('contribution').checked = true;
+            majBouton();
+            $('formulaire').hidden = true;
+            $('code-email').textContent = candidature.email;
+            $('etape-code').hidden = false;
+        }
 
         function messageAuth(error) {
             const m = String((error && error.message) || '').toLowerCase();
@@ -471,6 +508,7 @@
         });
 
         $('changer-email').addEventListener('click', () => {
+            oublier();
             $('etape-code').hidden = true;
             $('formulaire').hidden = false;
             $('email').focus();
@@ -501,6 +539,7 @@
                 return;
             }
             clearInterval(attenteRenvoi);
+            oublier();
             $('etape-code').hidden = true;
             $('succes').style.display = 'block';
             enregistrer(db, 'candidature', { faculte: candidature.faculte });
