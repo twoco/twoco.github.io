@@ -338,8 +338,8 @@
                     E-mail enregistré : ${esc(ancien.email || '(aucun)')}<br>
                     E-mail de la demande : ${esc(t.email || '(aucun)')}<br>
                     ${memes
-                        ? 'Valide seulement si tu as reçu la confirmation depuis cette adresse.'
-                        : '⚠️ Adresses différentes : quelqu\'un essaie peut-être de prendre la place de ce tuteur. Ne valide que si la confirmation vient de l\'e-mail enregistré.'}
+                        ? '✅ Même adresse e-mail que le profil publié : tu peux valider.'
+                        : '⚠️ Adresse e-mail différente : quelqu\'un essaie peut-être de prendre la place de ce tuteur. Ne valide pas sans être sûr (tu peux écrire au tuteur sur l\'adresse enregistrée).'}
                 </div>` + dejaPaye;
             };
             const valides = data.filter(t => t.status === 'valide');
