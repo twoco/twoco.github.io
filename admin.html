@@ -399,6 +399,13 @@
                 return;
             }
 
+            // Profil supprimé : on efface aussi le compte technique créé pour le code e-mail
+            // (Supabase ne le fait que si plus aucun profil n'utilise cette adresse)
+            if (action === 'supprimer' && tuteur.email) {
+                const { error } = await db.rpc('supprimer_compte_tuteur', { p_email: tuteur.email });
+                if (error) console.error(error);
+            }
+
             // Modification de profil : la nouvelle fiche validée remplace les anciennes du même numéro
             if (action === 'valider') {
                 const tel = (fiches.find(t => String(t.id) === id) || {}).whatsapp;
