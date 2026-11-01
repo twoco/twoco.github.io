@@ -301,7 +301,7 @@
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
                         ${t.langues ? `<p><strong>Langues :</strong> ${esc(t.langues)}</p>` : ''}
-                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}</p>` : ''}
+                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}${t.indisponible ? ' | ⏸️ <strong>Indisponible</strong>' : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
                     </div>
@@ -357,6 +357,7 @@
                     // 📌 Fondateur -> 📌 Cofondateur -> Retirer 📌
                     { cls: 'btn-n', action: 'fondateur',
                       label: !t.fondateur ? '📌 Fondateur' : t.fondateur === 'fondateur' ? '📌 Cofondateur' : 'Retirer 📌' },
+                    { cls: 'btn-n', action: 'dispo', label: t.indisponible ? '▶️ Rendre disponible' : '⏸️ Indisponible' },
                     { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Supprimer' }])).join('')
                 : '<p class="vide">Aucun profil publié.</p>';
@@ -379,6 +380,8 @@
             if (action === 'supprimer') {
                 if (!confirm('Supprimer définitivement ce profil ?')) return;
                 resultat = await db.from('tuteurs').delete().eq('id', id).select();
+            } else if (action === 'dispo') {
+                resultat = await db.from('tuteurs').update({ indisponible: !tuteur.indisponible }).eq('id', id).select();
             } else if (action === 'fondateur') {
                 const suivant = !tuteur.fondateur ? 'fondateur' : tuteur.fondateur === 'fondateur' ? 'cofondateur' : null;
                 resultat = await db.from('tuteurs').update({ fondateur: suivant }).eq('id', id).select();
@@ -402,6 +405,7 @@
                     if (anciens.length) await db.from('tuteurs').update({
                         badge_verifie: anciens.some(t => t.badge_verifie),
                         fondateur: (anciens.find(t => t.fondateur) || {}).fondateur || null,
+                        ...(anciens.some(t => t.indisponible) ? { indisponible: true } : {}),
                         compteur_clics: Math.max(...anciens.map(t => t.compteur_clics || 0))
                     }).eq('id', id);
                     if (anciens.length) await db.from('paiements').update({ tuteur_id: id }).in('tuteur_id', anciens.map(t => String(t.id)));

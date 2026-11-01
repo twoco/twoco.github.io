@@ -79,6 +79,7 @@
         .tag-matiere { background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; margin: 0 6px 8px 0; }
         .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
         .prix { font-size: 1.5rem; font-weight: 800; }
+        .indisponible { background: #e2e8f0; color: #475569; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
         .btn-whatsapp { background-color: #25D366; color: white; text-decoration: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
         .msg { text-align: center; grid-column: 1 / -1; color: #475569; }
 
@@ -245,10 +246,11 @@
             $('recherche').value = '';
             filtre = '';
             faculteCourante = cle;
-            const { data, error } = await db
-                .from('tuteurs')
-                .select('id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie, fondateur, langues')
-                .eq('status', 'valide').eq('faculte', cle).eq('annee', a);
+            const colonnes = 'id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie, fondateur, langues';
+            const charger = cols => db.from('tuteurs').select(cols).eq('status', 'valide').eq('faculte', cle).eq('annee', a);
+            let { data, error } = await charger(colonnes + ', indisponible');
+            // Si la colonne « indisponible » n'existe pas encore dans Supabase, on charge sans elle
+            if (error) ({ data, error } = await charger(colonnes));
 
             if (error) {
                 console.error(error);
@@ -313,7 +315,9 @@
                 const message = encodeURIComponent(filtre
                     ? `Salut, je t'ai trouvé via Twoco pour un cours de ${filtre} !`
                     : 'Salut, je t\'ai trouvé via Twoco pour des cours d\'appui !');
-                const bouton = tel ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" data-id="${esc(t.id)}" target="_blank" rel="noopener">WhatsApp</a>` : '';
+                // Tuteur indisponible (choisi dans l'admin) : le profil reste visible, sans bouton WhatsApp
+                const bouton = t.indisponible ? '<span class="indisponible">Indisponible</span>'
+                    : tel ? `<a href="https://wa.me/${tel}?text=${message}" class="btn-whatsapp" data-id="${esc(t.id)}" target="_blank" rel="noopener">WhatsApp</a>` : '';
                 return `
                     <div class="tuteur-card">
                         <div class="tuteur-info">
