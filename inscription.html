@@ -303,7 +303,7 @@
         if (CONFIG.PRIX_FIXE) {
             $('prix-libre').hidden = true;
             $('prix-fixe').hidden = false;
-            $('prix-fixe').innerHTML = `Tarif : ${CONFIG.PRIX_FIXE} CHF par heure <span>(le même pour tous les tuteurs)</span>`;
+            $('prix-fixe').innerHTML = `Tarif de départ : ${CONFIG.PRIX_FIXE} CHF par heure <span>(à confirmer avec l'élève sur WhatsApp)</span>`;
         } else {
             $('prix').min = CONFIG.PRIX_MIN;
             $('prix').max = CONFIG.PRIX_MAX;
