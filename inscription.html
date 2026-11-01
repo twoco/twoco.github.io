@@ -86,6 +86,12 @@
         .manque:empty { display: none; }
         #erreur { color: #b91c1c; font-weight: 600; margin-top: 16px; display: none; }
         #succes { display: none; text-align: center; }
+        #code { font-size: 1.4rem; letter-spacing: 0.3em; text-align: center; }
+        .erreur-code { color: #b91c1c; font-weight: 600; margin: 12px 0 0; }
+        .erreur-code:empty { display: none; }
+        .liens-code { text-align: center; margin: 16px 0 0; color: #94a3b8; font-size: 0.9rem; }
+        .liens-code .lien { width: auto; margin: 0; padding: 0; background: none; color: var(--blue); font-weight: 600; font-size: inherit; text-decoration: underline; }
+        .liens-code .lien:disabled { background: none; color: #94a3b8; text-decoration: none; }
         .prix-fixe { margin-top: 22px; font-weight: 600; }
         .prix-fixe span { font-weight: 400; color: #64748b; }
         .hp { position: absolute; left: -9999px; }
@@ -103,7 +109,7 @@
     <div class="card">
         <form id="formulaire" novalidate>
             <h1>Devenir tuteur</h1>
-            <p class="intro">Environ 2 minutes. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
+            <p class="intro">Environ 2 minutes. À la fin, tu confirmes ton adresse e-mail avec un code reçu par e-mail. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
             <p class="intro deja">Déjà inscrit ? Pour modifier ton profil, réinscris-toi simplement avec le même numéro WhatsApp et la même adresse e-mail. Ton nouveau profil remplacera l'ancien après validation, et ton badge « Vérifié » est conservé.</p>
 
             <div class="etape">
@@ -182,6 +188,20 @@
             <p id="erreur" role="alert"></p>
             <button type="submit" id="envoyer" disabled>Envoyer ma candidature</button>
             <p id="manque" class="manque"></p>
+        </form>
+
+        <!-- Étape 2 : confirmer l'adresse e-mail avec le code reçu -->
+        <form id="etape-code" novalidate hidden>
+            <h2>Confirme ton adresse e‑mail</h2>
+            <p class="intro">On vient d'envoyer un code à 6 chiffres à <strong id="code-email"></strong>. Regarde aussi dans les spams.</p>
+            <label for="code">Code reçu par e-mail</label>
+            <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456" required>
+            <p id="erreur-code" class="erreur-code" role="alert"></p>
+            <button type="submit" id="confirmer">Confirmer ma candidature</button>
+            <p class="liens-code">
+                <button type="button" class="lien" id="renvoyer">Renvoyer le code</button> ·
+                <button type="button" class="lien" id="changer-email">Modifier mon adresse</button>
+            </p>
         </form>
 
         <div id="succes">
@@ -383,9 +403,10 @@
             const btn = $('envoyer');
             envoiEnCours = true;
             btn.disabled = true;
-            btn.textContent = 'Envoi en cours...';
+            btn.textContent = 'Envoi du code...';
 
-            const { error } = await db.from('tuteurs').insert([{
+            // La candidature est gardée de côté : elle ne part qu'après la confirmation de l'adresse e-mail
+            candidature = {
                 prenom, nom, whatsapp, faculte, annee,
                 matieres: matieres.join(', '),
                 lieu: lieux.join(', '),
@@ -394,21 +415,95 @@
                 cgu_acceptees: true,
                 cgu_version: CONFIG.CGU_VERSION,
                 status: 'en_attente'
-            }]);
+            };
+            const ok = await envoyerCode();
+            btn.textContent = 'Envoyer ma candidature';
+            envoiEnCours = false;
+            majBouton();
+            if (!ok) return;
+            $('formulaire').hidden = true;
+            $('code-email').textContent = email;
+            $('code').value = '';
+            $('etape-code').hidden = false;
+            $('code').focus();
+        });
 
+        // ---------- Confirmation de l'adresse e-mail par un code (Supabase Auth, sans mot de passe)
+        // Client à part, sans session gardée dans le navigateur : la connexion ne sert qu'à envoyer la candidature
+        const dbCode = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY,
+            { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+        let candidature = null;
+        let attenteRenvoi = null;
+
+        function messageAuth(error) {
+            const m = String((error && error.message) || '').toLowerCase();
+            if (error && (error.status === 429 || m.includes('rate') || m.includes('seconds')))
+                return 'Trop de demandes. Attends une minute, puis réessaie.';
+            if (m.includes('expired') || m.includes('invalid') || m.includes('token'))
+                return 'Code incorrect ou expiré. Vérifie le code, ou demande-en un nouveau.';
+            return 'Le code n\'a pas pu être envoyé. Vérifie ton adresse e-mail et réessaie dans un instant.';
+        }
+
+        async function envoyerCode() {
+            const { error } = await dbCode.auth.signInWithOtp({ email: candidature.email, options: { shouldCreateUser: true } });
+            if (error) {
+                console.error(error);
+                if ($('etape-code').hidden) montrerErreur(messageAuth(error));
+                else $('erreur-code').textContent = messageAuth(error);
+                return false;
+            }
+            // « Renvoyer le code » possible après 60 secondes
+            let reste = 60;
+            $('renvoyer').disabled = true;
+            $('renvoyer').textContent = `Renvoyer le code (${reste} s)`;
+            clearInterval(attenteRenvoi);
+            attenteRenvoi = setInterval(() => {
+                reste -= 1;
+                $('renvoyer').textContent = reste > 0 ? `Renvoyer le code (${reste} s)` : 'Renvoyer le code';
+                if (reste <= 0) { clearInterval(attenteRenvoi); $('renvoyer').disabled = false; }
+            }, 1000);
+            return true;
+        }
+
+        $('renvoyer').addEventListener('click', async () => {
+            $('erreur-code').textContent = '';
+            if (await envoyerCode()) $('erreur-code').textContent = '';
+        });
+
+        $('changer-email').addEventListener('click', () => {
+            $('etape-code').hidden = true;
+            $('formulaire').hidden = false;
+            $('email').focus();
+        });
+
+        $('etape-code').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const code = $('code').value.replace(/\D/g, '');
+            $('erreur-code').textContent = '';
+            if (code.length < 6) { $('erreur-code').textContent = 'Entre le code à 6 chiffres reçu par e-mail.'; return; }
+            const btn = $('confirmer');
+            btn.disabled = true;
+            btn.textContent = 'Vérification...';
+            const fin = () => { btn.disabled = false; btn.textContent = 'Confirmer ma candidature'; };
+
+            const verif = await dbCode.auth.verifyOtp({ email: candidature.email, token: code, type: 'email' });
+            if (verif.error) { console.error(verif.error); $('erreur-code').textContent = messageAuth(verif.error); fin(); return; }
+
+            // Adresse confirmée : la candidature part, liée à cette adresse (contrôlé aussi par Supabase)
+            const { error } = await dbCode.from('tuteurs').insert([candidature]);
+            await dbCode.auth.signOut();
             if (error) {
                 console.error(error);
                 // Messages des protections anti-spam de Supabase (commencent par « TWOCO: »)
                 const msg = String(error.message || '');
-                montrerErreur(msg.startsWith('TWOCO: ') ? msg.slice(7) : 'L\'envoi a échoué. Réessaie dans un instant.');
-                btn.textContent = 'Envoyer ma candidature';
-                envoiEnCours = false;
-                majBouton();
+                $('erreur-code').textContent = msg.startsWith('TWOCO: ') ? msg.slice(7) : 'L\'envoi a échoué. Réessaie dans un instant.';
+                fin();
                 return;
             }
-            $('formulaire').style.display = 'none';
+            clearInterval(attenteRenvoi);
+            $('etape-code').hidden = true;
             $('succes').style.display = 'block';
-            enregistrer(db, 'candidature', { faculte });
+            enregistrer(db, 'candidature', { faculte: candidature.faculte });
         });
     </script>
 </body>
