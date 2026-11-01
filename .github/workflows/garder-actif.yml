@@ -2,6 +2,8 @@
 # Supabase met le projet en pause. Tous les 3 jours, on lit la liste des facultés,
 # comme le ferait un visiteur (clé publique « anon », déjà présente dans config.js).
 # Si la base ne répond pas (projet en pause, panne), la tâche échoue et GitHub prévient par e-mail.
+# Elle se réactive aussi elle-même : GitHub coupe les tâches planifiées d'un dépôt public
+# resté 60 jours sans changement, sauf si la tâche est « réactivée » entre-temps.
 name: Garder Supabase actif
 
 on:
@@ -11,12 +13,13 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   visite:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Lire la liste des facultés
         run: |
           URL=$(grep -o "SUPABASE_URL: '[^']*'" config.js | cut -d"'" -f2)
@@ -25,3 +28,8 @@ jobs:
             -H "apikey: $CLE" -H "Authorization: Bearer $CLE")
           echo "Réponse de Supabase : $CODE"
           test "$CODE" = "200"
+      - name: Rester activée (sans modifier le dépôt)
+        continue-on-error: true  # ne pas confondre avec une panne de Supabase
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/garder-actif.yml/enable"
