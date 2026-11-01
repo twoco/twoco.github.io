@@ -516,8 +516,8 @@
         // Fichier CSV (s'ouvre dans Excel) : une ligne par paiement + total
         $('export-paiements').addEventListener('click', () => {
             if (!paiements.length) return alert('Aucun paiement à télécharger.');
-            // Un texte qui commence par = + - @ serait lu comme une formule par Excel : on le neutralise
-            const cellule = v => { let t = String(v ?? ''); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+            // Un texte qui commence par = + - @ (ou une tabulation / un retour à la ligne) serait lu comme une formule par Excel : on le neutralise
+            const cellule = v => { let t = String(v ?? ''); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
             const lignes = [['Date', 'Tuteur', 'Montant (CHF)', 'Remarque']]
                 .concat([...paiements].reverse().map(p => [p.date, p.tuteur_nom, Number(p.montant).toFixed(2), p.remarque || '']))
                 .concat([['', 'TOTAL', paiements.reduce((s, p) => s + Number(p.montant), 0).toFixed(2), '']]);
