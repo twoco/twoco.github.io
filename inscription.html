@@ -92,8 +92,12 @@
         .liens-code { text-align: center; margin: 16px 0 0; color: #94a3b8; font-size: 0.9rem; }
         .liens-code .lien { width: auto; margin: 0; padding: 0; background: none; color: var(--blue); font-weight: 600; font-size: inherit; text-decoration: underline; }
         .liens-code .lien:disabled { background: none; color: #94a3b8; text-decoration: none; }
-        .prix-fixe { margin-top: 22px; font-weight: 600; }
-        .prix-fixe span { font-weight: 400; color: #64748b; }
+        /* Tarif mis en évidence : encadré bleu clair avec une icône */
+        .prix-fixe { display: flex; align-items: center; gap: 14px; margin-top: 22px; padding: 16px 18px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; }
+        .prix-fixe .ico { flex-shrink: 0; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 50%; font-size: 1.15rem; }
+        .prix-fixe .titre { display: block; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #1d4ed8; }
+        .prix-fixe .montant { display: block; font-size: 1.35rem; font-weight: 800; color: var(--dark); }
+        .prix-fixe .aide { margin-top: 2px; color: #475569; }
         .hp { position: absolute; left: -9999px; }
         @media (max-width: 600px) { .card { margin: 0; padding: 28px 20px; border-radius: 0; box-shadow: none; } .row { flex-direction: column; gap: 0; } }
         a.retour { display: inline-block; margin-top: 16px; color: var(--blue); font-weight: 600; }
@@ -148,7 +152,7 @@
                     <label for="prix">Prix par heure (CHF)</label>
                     <input type="number" id="prix" step="1">
                 </div>
-                <p id="prix-fixe" class="prix-fixe" hidden></p>
+                <div id="prix-fixe" class="prix-fixe" hidden></div>
             </div>
 
             <div class="etape">
@@ -328,7 +332,9 @@
         if (CONFIG.PRIX_FIXE) {
             $('prix-libre').hidden = true;
             $('prix-fixe').hidden = false;
-            $('prix-fixe').innerHTML = `Tarif de départ : ${CONFIG.PRIX_FIXE} CHF par heure <span>(à confirmer avec l'élève sur WhatsApp)</span>`;
+            $('prix-fixe').innerHTML = `<span class="ico" aria-hidden="true">💰</span>
+                <div><span class="titre">Tarif de départ</span><span class="montant">${CONFIG.PRIX_FIXE} CHF par heure</span>
+                <span class="aide">À confirmer avec l'élève sur WhatsApp.</span></div>`;
         } else {
             $('prix').min = CONFIG.PRIX_MIN;
             $('prix').max = CONFIG.PRIX_MAX;
