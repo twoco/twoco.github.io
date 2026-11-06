@@ -271,11 +271,11 @@
 
         const NOM_FONDATEUR = { fondateur: 'Fondateur', cofondateur: 'Cofondateur' };
 
-        // Tri « Recommandé » : chaque profil fondateur ou cofondateur est placé au hasard entre la 3e et la 6e place
+        // Tri « Recommandé » : chaque profil fondateur ou cofondateur est placé au hasard entre la 2e et la 4e place
         // (nouvelle place à chaque affichage ; à la fin de la liste s'il y a moins de tuteurs)
         function placerFondateurs(tuteurs) {
             const resultat = tuteurs.filter(t => !t.fondateur);
-            const libres = [2, 3, 4, 5];
+            const libres = [1, 2, 3];
             const places = tuteurs.filter(t => t.fondateur).map(t => ({ t,
                 place: libres.length ? libres.splice(Math.floor(Math.random() * libres.length), 1)[0] : Infinity }));
             // Insérer de la plus petite place à la plus grande : un ajout ne décale jamais un fondateur déjà placé
