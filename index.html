@@ -282,13 +282,20 @@
         const MATIERES_VISIBLES = 3;
         const NOM_FONDATEUR = { fondateur: 'Fondateur', cofondateur: 'Cofondateur' };
 
-        // Tri « Recommandé » : chaque profil fondateur ou cofondateur est placé au hasard entre la 2e et la 4e place
-        // (nouvelle place à chaque affichage ; à la fin de la liste s'il y a moins de tuteurs)
+        // Tri « Recommandé » : le Fondateur est placé au hasard entre la 2e et la 4e place, le Cofondateur entre la 3e et la 6e
+        // (jamais à la même place ; nouvelle place à chaque affichage ; plus haut s'il y a moins de tuteurs)
+        const PLACES_FONDATEUR = { fondateur: [1, 2, 3], cofondateur: [2, 3, 4, 5] }; // index 0 = 1re place
         function placerFondateurs(tuteurs) {
             const resultat = tuteurs.filter(t => !t.fondateur);
-            const libres = [1, 2, 3];
-            const places = tuteurs.filter(t => t.fondateur).map(t => ({ t,
-                place: libres.length ? libres.splice(Math.floor(Math.random() * libres.length), 1)[0] : Infinity }));
+            const prises = new Set();
+            const places = tuteurs.filter(t => t.fondateur)
+                .sort((x, y) => (x.fondateur === 'fondateur' ? 0 : 1) - (y.fondateur === 'fondateur' ? 0 : 1))
+                .map(t => {
+                    const libres = (PLACES_FONDATEUR[t.fondateur] || PLACES_FONDATEUR.cofondateur).filter(p => !prises.has(p));
+                    const place = libres.length ? libres[Math.floor(Math.random() * libres.length)] : Infinity;
+                    prises.add(place);
+                    return { t, place };
+                });
             // Insérer de la plus petite place à la plus grande : un ajout ne décale jamais un fondateur déjà placé
             places.sort((x, y) => x.place - y.place).forEach(({ t, place }) => resultat.splice(Math.min(place, resultat.length), 0, t));
             return resultat;
