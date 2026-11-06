@@ -77,6 +77,9 @@
         .tuteur-card { background: var(--white); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
         .tuteur-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
         .tag-matiere { background: #f1f5f9; color: var(--blue); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; display: inline-block; margin: 0 6px 8px 0; }
+        /* Au-delà de 3 matières, les autres sont repliées derrière un bouton « +N matières » */
+        .voir-plus { background: none; border: 1px dashed #cbd5e1; color: #475569; padding: 5px 12px; border-radius: 8px; font: inherit; font-weight: 600; font-size: 0.85rem; margin: 0 6px 8px 0; cursor: pointer; }
+        .voir-plus:hover { border-color: var(--blue); color: var(--blue); }
         .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
         .prix { font-size: 1.5rem; font-weight: 800; }
         .indisponible { background: #e2e8f0; color: #475569; padding: 12px 20px; border-radius: 12px; font-weight: 700; }
@@ -269,6 +272,7 @@
             rendreListe();
         }
 
+        const MATIERES_VISIBLES = 3;
         const NOM_FONDATEUR = { fondateur: 'Fondateur', cofondateur: 'Cofondateur' };
 
         // Tri « Recommandé » : chaque profil fondateur ou cofondateur est placé au hasard entre la 2e et la 4e place
@@ -303,8 +307,17 @@
                 container.innerHTML = '<p class="msg">Aucun tuteur ne correspond à ta recherche.</p>';
                 return;
             }
+            // La matière filtrée ou cherchée passe en premier, pour rester visible même si les autres sont repliées
+            const prioritaire = m => m === filtre || (mots.length > 0 && mots.some(w => normaliser(m).includes(w)));
             container.innerHTML = visibles.map(t => {
-                const tags = matieresDe(t).map(m => `<span class="tag-matiere">${esc(m)}</span>`).join('') || '<span class="tag-matiere">Matières à définir</span>';
+                const ms = matieresDe(t);
+                const triees = [...ms.filter(prioritaire), ...ms.filter(m => !prioritaire(m))];
+                const tag = m => `<span class="tag-matiere">${esc(m)}</span>`;
+                const cachees = triees.slice(MATIERES_VISIBLES);
+                const tags = !triees.length ? '<span class="tag-matiere">Matières à définir</span>'
+                    : triees.slice(0, MATIERES_VISIBLES).map(tag).join('') + (cachees.length
+                        ? `<span class="matieres-cachees" hidden>${cachees.map(tag).join('')}</span><button type="button" class="voir-plus" aria-expanded="false" data-plus="+${cachees.length} matière${cachees.length > 1 ? 's' : ''}">+${cachees.length} matière${cachees.length > 1 ? 's' : ''}</button>`
+                        : '');
                 const nom = esc([t.prenom, t.nom].filter(Boolean).join(' ') || 'Tuteur');
                 // Vérifié = le tuteur a payé les 5 CHF après son premier cours (badge donné par Supabase au paiement)
                 const statut = t.badge_verifie
@@ -332,6 +345,16 @@
                     </div>`;
             }).join('');
         }
+
+        // Bouton « +N matières » : affiche ou replie les autres matières de la carte
+        $('tuteurs-container').addEventListener('click', (e) => {
+            const btn = e.target.closest('.voir-plus');
+            if (!btn) return;
+            const ouvert = btn.getAttribute('aria-expanded') !== 'true';
+            btn.previousElementSibling.hidden = !ouvert;
+            btn.setAttribute('aria-expanded', String(ouvert));
+            btn.textContent = ouvert ? 'Voir moins' : btn.dataset.plus;
+        });
 
         $('filtres').addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-matiere]');
