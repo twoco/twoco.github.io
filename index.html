@@ -228,6 +228,12 @@
 
         // Liste des tuteurs d'une faculté/année, avec filtre par matière et tri
         let liste = [], filtre = '', faculteCourante = '';
+        // Mélange de Fisher-Yates (chaque ordre a la même chance)
+        function melanger(tableau) {
+            const a = [...tableau];
+            for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+            return a;
+        }
         const matieresDe = t => String(t.matieres || '').split(',').map(m => m.trim()).filter(Boolean);
         const INFO_VERIFIE = 'Ce tuteur a déjà donné un premier cours via Twoco.';
         // Étoile aux pointes arrondies : un trait épais de la même couleur que le remplissage (pas de contour visible)
@@ -260,7 +266,8 @@
                 container.innerHTML = '<p class="msg">Impossible de charger les tuteurs pour le moment. Réessaie dans quelques minutes.</p>';
                 return;
             }
-            liste = (data || []).map(t => ({ ...t, hasard: Math.random() }));
+            // Les matières de chaque tuteur sont mélangées une fois par chargement : les 3 affichées changent d'un visiteur à l'autre
+            liste = (data || []).map(t => ({ ...t, hasard: Math.random(), melangees: melanger(matieresDe(t)) }));
 
             // Filtre : seulement les matières proposées par au moins un tuteur, dans l'ordre de la faculté
             const proposees = new Set(liste.flatMap(matieresDe));
@@ -310,7 +317,7 @@
             // La matière filtrée ou cherchée passe en premier, pour rester visible même si les autres sont repliées
             const prioritaire = m => m === filtre || (mots.length > 0 && mots.some(w => normaliser(m).includes(w)));
             container.innerHTML = visibles.map(t => {
-                const ms = matieresDe(t);
+                const ms = t.melangees || matieresDe(t);
                 const triees = [...ms.filter(prioritaire), ...ms.filter(m => !prioritaire(m))];
                 const tag = m => `<span class="tag-matiere">${esc(m)}</span>`;
                 const cachees = triees.slice(MATIERES_VISIBLES);
