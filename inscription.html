@@ -43,6 +43,7 @@
         legend { margin-top: 0; float: left; width: 100%; }
         legend + * { clear: both; }
         .hint { font-weight: 400; color: #64748b; font-size: 0.85rem; }
+        #pays-box { margin: 10px 0; }
         .tel-apercu { margin: 6px 0 0; font-size: 0.85rem; color: #475569; }
         .aide { display: block; font-weight: 400; color: #64748b; font-size: 0.85rem; margin-top: 2px; }
         input[type=text], input[type=tel], input[type=number], input[type=email] { width: 100%; padding: 12px 14px; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font: inherit; }
@@ -158,7 +159,12 @@
 
             <div class="etape">
                 <h2>Contact</h2>
-                <div class="q" data-q="whatsapp" data-ico="💬"><label for="whatsapp">Ton numéro WhatsApp <span class="aide">Les élèves te contactent directement par WhatsApp.</span></label>
+                <div class="q" data-q="whatsapp" data-ico="💬"><label for="whatsapp">Ton numéro WhatsApp <span class="aide">Les élèves te contactent directement par WhatsApp. Choisis d'abord le pays de ton numéro.</span></label>
+                <div class="choix" id="pays-box" role="radiogroup" aria-label="Pays du numéro WhatsApp">
+                    <label class="chip"><input type="radio" name="pays" value="41"><span>🇨🇭 Suisse (+41)</span></label>
+                    <label class="chip"><input type="radio" name="pays" value="33"><span>🇫🇷 France (+33)</span></label>
+                    <label class="chip"><input type="radio" name="pays" value="autre"><span>🌍 Autre pays</span></label>
+                </div>
                 <input type="tel" id="whatsapp" maxlength="25" autocomplete="tel" placeholder="079 123 45 67" aria-describedby="tel-apercu" required>
                 <p id="tel-apercu" class="tel-apercu" aria-live="polite" hidden></p></div>
 
@@ -342,11 +348,21 @@
             $('prix').max = CONFIG.PRIX_MAX;
         }
 
+        // Pays choisi par le tuteur (aucun par défaut, pour qu'un numéro étranger ne devienne jamais un faux numéro suisse).
+        // Un numéro écrit avec son indicatif (+33…, 0033…) est toujours pris tel quel.
+        const PLACEHOLDER_TEL = { 41: '079 123 45 67', 33: '06 12 34 56 78', autre: '+49 151 23456789' };
+        function paysTel() { const r = document.querySelector('input[name="pays"]:checked'); return r ? r.value : ''; }
         function normaliserTel(brut) {
+            const international = /^\s*(\+|00)/.test(brut);
             let n = brut.replace(/\D/g, '');
-            if (n.startsWith('00')) n = n.slice(2);
-            else if (n.startsWith('0')) n = '41' + n.slice(1);
-            return (n.length >= 11 && n.length <= 15) ? n : null;
+            if (international) n = n.replace(/^00/, '');
+            else {
+                const pays = paysTel();
+                if (pays !== '41' && pays !== '33') return null;
+                n = pays + n.replace(/^0/, '');
+            }
+            if (n.startsWith('41') || n.startsWith('33')) return n.length === 11 ? n : null;
+            return (n.length >= 10 && n.length <= 15) ? n : null;
         }
 
         // Le bouton reste gris tant que le minimum n'est pas rempli
@@ -361,7 +377,7 @@
             if (!document.querySelector('input[name="faculte"]:checked')) manque.push('faculté');
             if (!document.querySelector('input[name="matiere"]:checked')) manque.push('matières');
             if (!document.querySelector('input[name="lieu"]:checked')) manque.push('lieux des cours');
-            if (!normaliserTel($('whatsapp').value)) manque.push('numéro WhatsApp');
+            if (!normaliserTel($('whatsapp').value)) manque.push(!paysTel() && !/^\s*(\+|00)/.test($('whatsapp').value) ? 'pays du numéro WhatsApp' : 'numéro WhatsApp');
             if (!$('accord').checked) manque.push('la case des CGU');
             if (!$('contribution').checked) manque.push('la case des 5 CHF');
             $('envoyer').disabled = manque.length > 0;
@@ -374,11 +390,21 @@
             return '+' + n;
         }
         function majApercuTel() {
-            const n = normaliserTel($('whatsapp').value);
-            $('tel-apercu').hidden = !n;
-            if (n) $('tel-apercu').innerHTML = `📱 Numéro enregistré : <strong>${afficherTel(n)}</strong>`;
+            const brut = $('whatsapp').value, n = normaliserTel(brut), el = $('tel-apercu');
+            const international = /^\s*(\+|00)/.test(brut);
+            let texte = '';
+            if (n) texte = `📱 Numéro enregistré : <strong>${afficherTel(n)}</strong>`;
+            else if (brut.trim() && !international && !paysTel()) texte = '👆 Choisis d\'abord le pays de ton numéro.';
+            else if (brut.trim() && !international && paysTel() === 'autre') texte = '🌍 Écris ton numéro avec l\'indicatif du pays, par exemple +49 151 23456789.';
+            el.hidden = !texte;
+            el.innerHTML = texte;
         }
         $('whatsapp').addEventListener('input', majApercuTel);
+        $('pays-box').addEventListener('change', () => {
+            $('whatsapp').placeholder = PLACEHOLDER_TEL[paysTel()] || PLACEHOLDER_TEL[41];
+            majApercuTel();
+            $('whatsapp').focus();
+        });
         $('formulaire').addEventListener('input', majBouton);
         $('formulaire').addEventListener('change', majBouton);
         majBouton();
@@ -416,7 +442,7 @@
             if (lieux.length === 0) return montrerErreur('Choisis au moins un lieu.');
             if (!prixNum || prixNum < CONFIG.PRIX_MIN || prixNum > CONFIG.PRIX_MAX)
                 return montrerErreur(`Indique un prix entre ${CONFIG.PRIX_MIN} et ${CONFIG.PRIX_MAX} CHF par heure.`);
-            if (!whatsapp) return montrerErreur('Numéro WhatsApp invalide. Exemple : 079 123 45 67.');
+            if (!whatsapp) return montrerErreur('Numéro WhatsApp invalide. Choisis le pays, puis écris ton numéro (ex. 079 123 45 67).');
             if (!emailValide(email))
                 return montrerErreur(`Indique ton adresse e-mail universitaire (qui se termine par ${CONFIG.EMAIL_DOMAINE}).`);
             if (!$('accord').checked || !$('contribution').checked) return montrerErreur('Coche les deux cases en bas du formulaire.');
@@ -476,6 +502,9 @@
             $('nom').value = candidature.nom;
             $('email').value = candidature.email;
             $('whatsapp').value = '+' + candidature.whatsapp;
+            const pays = ['41', '33'].find(p => candidature.whatsapp.startsWith(p)) || 'autre';
+            const radioPays = document.querySelector(`input[name="pays"][value="${pays}"]`);
+            if (radioPays) radioPays.checked = true;
             majApercuTel();
             $('langues').value = candidature.langues || '';
             const cocher = (nom, v) => { const i = document.querySelector(`input[name="${nom}"][value="${CSS.escape(v)}"]`); if (i) i.checked = true; };
