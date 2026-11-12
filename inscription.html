@@ -43,6 +43,7 @@
         legend { margin-top: 0; float: left; width: 100%; }
         legend + * { clear: both; }
         .hint { font-weight: 400; color: #64748b; font-size: 0.85rem; }
+        .tel-apercu { margin: 6px 0 0; font-size: 0.85rem; color: #475569; }
         .aide { display: block; font-weight: 400; color: #64748b; font-size: 0.85rem; margin-top: 2px; }
         input[type=text], input[type=tel], input[type=number], input[type=email] { width: 100%; padding: 12px 14px; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font: inherit; }
         input:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
@@ -158,7 +159,8 @@
             <div class="etape">
                 <h2>Contact</h2>
                 <div class="q" data-q="whatsapp" data-ico="💬"><label for="whatsapp">Ton numéro WhatsApp <span class="aide">Les élèves te contactent directement par WhatsApp.</span></label>
-                <input type="tel" id="whatsapp" maxlength="25" autocomplete="tel" placeholder="079 123 45 67" required></div>
+                <input type="tel" id="whatsapp" maxlength="25" autocomplete="tel" placeholder="079 123 45 67" aria-describedby="tel-apercu" required>
+                <p id="tel-apercu" class="tel-apercu" aria-live="polite" hidden></p></div>
 
                 <div class="q" data-q="langues" data-ico="🗣️"><label for="langues">Autres langues que le français <span class="hint">(facultatif)</span></label>
                 <input type="text" id="langues" maxlength="100" placeholder="Anglais, Italien…"></div>
@@ -365,6 +367,18 @@
             $('envoyer').disabled = manque.length > 0;
             $('manque').textContent = manque.length ? 'Il manque : ' + manque.join(', ') + '.' : '';
         }
+        // Sous le champ WhatsApp : le numéro tel qu'il sera enregistré (un numéro étranger écrit sans indicatif se voit tout de suite)
+        function afficherTel(n) {
+            if (n.startsWith('41') && n.length === 11) return `+41 ${n.slice(2, 4)} ${n.slice(4, 7)} ${n.slice(7, 9)} ${n.slice(9)}`;
+            if (n.startsWith('33') && n.length === 11) return `+33 ${n[2]} ${n.slice(3).match(/../g).join(' ')}`;
+            return '+' + n;
+        }
+        function majApercuTel() {
+            const n = normaliserTel($('whatsapp').value);
+            $('tel-apercu').hidden = !n;
+            if (n) $('tel-apercu').innerHTML = `📱 Numéro enregistré : <strong>${afficherTel(n)}</strong>`;
+        }
+        $('whatsapp').addEventListener('input', majApercuTel);
         $('formulaire').addEventListener('input', majBouton);
         $('formulaire').addEventListener('change', majBouton);
         majBouton();
@@ -462,6 +476,7 @@
             $('nom').value = candidature.nom;
             $('email').value = candidature.email;
             $('whatsapp').value = '+' + candidature.whatsapp;
+            majApercuTel();
             $('langues').value = candidature.langues || '';
             const cocher = (nom, v) => { const i = document.querySelector(`input[name="${nom}"][value="${CSS.escape(v)}"]`); if (i) i.checked = true; };
             cocher('faculte', candidature.faculte);
