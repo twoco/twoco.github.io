@@ -86,6 +86,12 @@
         .login button { width: 100%; margin-top: 16px; background: var(--blue); color: white; }
         .err { color: #b91c1c; font-weight: 600; margin-top: 12px; min-height: 1em; }
         h2.section { margin: 36px 0 14px; }
+        /* Filtre par faculté + recherche au-dessus des listes de tuteurs */
+        .outils-tuteurs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; position: sticky; top: 0; z-index: 5; background: #f8fafc; padding: 10px 0; }
+        .outils-tuteurs select, .outils-tuteurs input { margin: 0; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; background: white; }
+        .outils-tuteurs select { flex: 0 1 220px; }
+        .outils-tuteurs input { flex: 1 1 260px; width: auto; }
+        .compte { font-size: 0.9rem; font-weight: 600; color: #64748b; }
         .tuteur-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 14px; display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .tuteur-card h3 { margin: 0 0 6px; }
         .tuteur-card p { margin: 3px 0; font-size: 0.92rem; }
@@ -190,10 +196,14 @@
             </section>
             <div class="colonnes">
                 <div class="colonne panneau visible" id="col-tuteurs">
-                    <h2 class="section">En attente de validation</h2>
+                    <div class="outils-tuteurs">
+                        <select id="filtre-fac" aria-label="Filtrer par faculté"><option value="">Toutes les facultés</option></select>
+                        <input type="search" id="recherche-tuteur" placeholder="Rechercher : nom, prénom, numéro, e-mail, matière…" aria-label="Rechercher un tuteur" autocomplete="off">
+                    </div>
+                    <h2 class="section">En attente de validation <span class="compte" id="compte-attente"></span></h2>
                     <div id="liste-attente"></div>
                     <div class="titre-ligne">
-                        <h2>Profils publiés</h2>
+                        <h2>Profils publiés <span class="compte" id="compte-valides"></span></h2>
                         <button type="button" class="btn-n petit" id="copier-emails">Copier tous les e-mails</button>
                     </div>
                     <div id="liste-valides"></div>
@@ -296,12 +306,12 @@
                 <div class="tuteur-card">
                     <div>
                         <h3>${esc(t.prenom)} ${esc(t.nom)}</h3>
-                        <p><strong>Faculté :</strong> ${esc(t.faculte)} - année ${esc(t.annee)}</p>
+                        <p><strong>Faculté :</strong> ${esc(nomFaculte(t.faculte))} - année ${esc(t.annee)}</p>
                         <p><strong>Matières :</strong> ${esc(t.matieres)}</p>
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
                         ${t.langues ? `<p><strong>Langues :</strong> ${esc(t.langues)}</p>` : ''}
-                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur' : 'Fondateur'}</strong> (3e à 6e place)` : ''}${t.indisponible ? ' | ⏸️ <strong>Indisponible</strong>' : ''}</p>` : ''}
+                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur (3e à 6e place)' : 'Fondateur (2e à 4e place)'}</strong>` : ''}${t.indisponible ? ' | ⏸️ <strong>Indisponible</strong>' : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
                     </div>
@@ -346,11 +356,48 @@
             $('pay-tuteur').innerHTML = '<option value="">Choisir…</option>' + valides
                 .map(t => `<option value="${esc(t.id)}">${esc(t.prenom)} ${esc(t.nom)}</option>`).join('');
 
+            rendu = { attente, valides, avertissement, dejaPublie };
+            majFiltreFac();
+            afficherListes();
+        }
+
+        // ---------- Filtre par faculté et recherche (sans recharger les données)
+        let rendu = null;
+        const nomFaculte = cle => (cat.facultes.find(f => f.cle === cle) || {}).nom || cle || '?';
+        const sansAccents = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’]/g, '').toLowerCase();
+        function majFiltreFac() {
+            const choix = $('filtre-fac').value;
+            const cles = [...new Set([...cat.facultes.map(f => f.cle), ...fiches.map(t => t.faculte).filter(Boolean)])];
+            const nb = cle => fiches.filter(t => t.faculte === cle).length;
+            $('filtre-fac').innerHTML = '<option value="">Toutes les facultés</option>' + cles
+                .map(c => `<option value="${esc(c)}">${esc(nomFaculte(c))} (${nb(c)})</option>`).join('');
+            $('filtre-fac').value = cles.includes(choix) ? choix : '';
+        }
+        // Un tuteur correspond si chaque mot cherché se trouve dans son nom, prénom, e-mail, matières ou numéro
+        // (numéro : espaces ignorés, et « 079… » trouve « 4179… »)
+        function correspond(t) {
+            if ($('filtre-fac').value && t.faculte !== $('filtre-fac').value) return false;
+            const texte = sansAccents([t.prenom, t.nom, t.email, t.matieres, t.langues].join(' '));
+            const tel = String(t.whatsapp || '');
+            const mots = sansAccents($('recherche-tuteur').value).split(/\s+/).filter(Boolean);
+            const chiffres = $('recherche-tuteur').value.replace(/\D/g, '');
+            if (chiffres.length >= 3 && mots.every(m => /^[\d+()\-.]+$/.test(m)))
+                return tel.includes(chiffres) || (chiffres.startsWith('0') && tel.includes(chiffres.replace(/^0+/, '')));
+            return mots.every(m => texte.includes(m) || (/^\d+$/.test(m) && tel.includes(m.replace(/^0+/, ''))));
+        }
+        function afficherListes() {
+            if (!rendu) return;
+            const { avertissement, dejaPublie } = rendu;
+            const filtre = $('filtre-fac').value || $('recherche-tuteur').value.trim();
+            const attente = rendu.attente.filter(correspond), valides = rendu.valides.filter(correspond);
+            const compte = (n, total) => filtre ? `(${n} sur ${total})` : `(${total})`;
+            $('compte-attente').textContent = compte(attente.length, rendu.attente.length);
+            $('compte-valides').textContent = compte(valides.length, rendu.valides.length);
             $('liste-attente').innerHTML = attente.length
                 ? attente.map(t => carte(t, !estAdmin() ? [] : [
                     { cls: 'btn-v', action: 'valider', label: dejaPublie(t) ? 'Valider (remplace l\'ancien profil)' : 'Valider' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Refuser' }], avertissement(t))).join('')
-                : '<p class="vide">Aucune candidature en attente.</p>';
+                : `<p class="vide">${filtre && rendu.attente.length ? 'Aucune candidature ne correspond.' : 'Aucune candidature en attente.'}</p>`;
 
             $('liste-valides').innerHTML = valides.length
                 ? valides.map(t => carte(t, !estAdmin() ? [] : [
@@ -363,8 +410,10 @@
                     ...(t.fondateur ? [{ cls: 'btn-n', action: 'dispo', label: t.indisponible ? '▶️ Rendre disponible' : '⏸️ Indisponible' }] : []),
                     { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Supprimer' }])).join('')
-                : '<p class="vide">Aucun profil publié.</p>';
+                : `<p class="vide">${filtre && rendu.valides.length ? 'Aucun profil ne correspond.' : 'Aucun profil publié.'}</p>`;
         }
+        $('filtre-fac').addEventListener('change', afficherListes);
+        $('recherche-tuteur').addEventListener('input', afficherListes);
 
         // Un seul écouteur pour tous les boutons (pas de onclick dans le HTML généré)
         $('panel').addEventListener('click', async (e) => {
@@ -743,6 +792,7 @@
             try {
                 const [c, s] = await Promise.all([chargerCatalogue(db), db.rpc('stats_totaux')]);
                 cat = c;
+                majFiltreFac(); afficherListes(); // noms des facultés dans le filtre et sur les cartes
                 clicsFacultes = {};
                 clicsMatieres = {};
                 (s.data || []).forEach(r => {
