@@ -75,14 +75,17 @@
         .col:hover .barre, .col.actif .barre { background: #1d4ed8; }
         .col .x { position: absolute; top: calc(100% + 4px); font-size: 0.7rem; color: #64748b; white-space: nowrap; }
         .graph-pied { height: 22px; }
-        /* Zoom et déplacement dans le graphique (barre sous le graphique, ou glisser le doigt / la souris) */
-        #graph { touch-action: pan-y; user-select: none; }
-        .graph-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        /* Graphique qu'on peut zoomer (deux doigts, pavé tactile, double-clic, − / +) et déplacer (glisser) */
+        .graph-titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #graph { touch-action: none; user-select: none; -webkit-user-select: none; min-height: 222px; cursor: grab; }
+        #graph.glisse { cursor: grabbing; }
+        .graph-info { margin: 6px 0 0; height: 2.6em; line-height: 1.3; font-size: 0.8rem; color: #475569; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }   /* hauteur fixe : le graphique ne bouge pas */
+        .graph-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .graph-nav[hidden] { display: none; }
-        .graph-nav button { padding: 7px 12px; font-size: 0.9rem; background: #f1f5f9; color: #334155; border-radius: 8px; }
+        .graph-nav button { padding: 6px 12px; font-size: 0.9rem; background: #f1f5f9; color: #334155; border-radius: 8px; }
         .graph-nav button:disabled { opacity: 0.4; cursor: default; }
-        .graph-nav input[type=range] { flex: 1 1 140px; margin: 0; padding: 0; accent-color: var(--blue); }
         .graph-nav .zoom { display: inline-flex; gap: 4px; }
+        .graph-nav .astuce { flex: 1 1 200px; font-size: 0.75rem; color: #64748b; }
         .bulle { position: absolute; background: var(--dark); color: white; font-size: 0.8rem; padding: 6px 10px; border-radius: 8px; pointer-events: none; white-space: nowrap; transform: translate(-50%, -100%); z-index: 5; }
         .nb-clics { font-size: 0.75rem; font-weight: 700; color: #475569; background: white; border-radius: 999px; padding: 1px 7px; }
         .titre-ligne { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -178,24 +181,24 @@
                         <option value="candidature">Candidatures envoyées</option>
                     </select>
                     <div class="segments" id="choix-periode">
-                        <button type="button" data-periode="minute">Par minute</button>
-                        <button type="button" data-periode="heure">Par heure</button>
-                        <button type="button" class="actif" data-periode="jour">Par jour</button>
-                        <button type="button" data-periode="semaine">Par semaine</button>
-                        <button type="button" data-periode="journee">Heures de la journée</button>
+                        <button type="button" data-plage="1">1 h</button>
+                        <button type="button" data-plage="24">24 h</button>
+                        <button type="button" data-plage="168">7 jours</button>
+                        <button type="button" class="actif" data-plage="720">30 jours</button>
+                        <button type="button" data-plage="2160">90 jours</button>
+                        <button type="button" data-plage="journee">Heures de la journée</button>
                     </div>
                 </div>
                 <p class="graph-titre" id="graph-titre"></p>
                 <div id="graph"></div>
+                <p class="graph-info" id="graph-info"></p>
                 <div class="graph-nav" id="graph-nav">
-                    <button type="button" data-nav="gauche" aria-label="Plus ancien" title="Plus ancien">◀</button>
-                    <input type="range" id="graph-curseur" min="0" max="0" step="1" value="0" aria-label="Se déplacer dans le temps">
-                    <button type="button" data-nav="droite" aria-label="Plus récent" title="Plus récent">▶</button>
                     <span class="zoom">
-                        <button type="button" data-nav="moins" aria-label="Dézoomer" title="Voir plus large">−</button>
-                        <button type="button" data-nav="plus" aria-label="Zoomer" title="Voir de plus près">+</button>
+                        <button type="button" data-nav="moins" aria-label="Voir plus large" title="Voir plus large">−</button>
+                        <button type="button" data-nav="plus" aria-label="Voir de plus près" title="Voir de plus près">+</button>
                     </span>
-                    <button type="button" data-nav="maintenant" class="maintenant">Maintenant</button>
+                    <button type="button" data-nav="maintenant">Maintenant</button>
+                    <span class="astuce">Écarte deux doigts (ou pince le pavé tactile) pour zoomer, glisse pour te déplacer, touche une barre pour le détail.</span>
                 </div>
 
                 <div class="paiements">
@@ -626,7 +629,7 @@
 
         // ---------- Statistiques (fonctions Supabase stats_par_jour et stats_totaux)
         let parJour = {};      // { 'AAAA-MM-JJ': { visite: n, clic_whatsapp: n, clic_matiere: n } }
-        let mesure = 'visite', periode = 'jour';
+        let mesure = 'visite', periode = 'temps';
         const NOMS = {
             visite: 'Visites du site', clic_faculte: 'Clics sur les facultés', clic_matiere: 'Clics sur les matières',
             clic_whatsapp: 'Clics WhatsApp', visite_inscription: 'Visites « Devenir tuteur »', candidature: 'Candidatures envoyées'
@@ -651,9 +654,9 @@
             data.forEach(r => { (parJour[r.jour] = parJour[r.jour] || {})[r.type] = Number(r.total); });
             $('tuiles').innerHTML = Object.keys(NOMS).map(type =>
                 `<div class="tuile"><div class="val">${somme(type, 7)}</div><div class="lib">${NOMS[type]}</div></div>`).join('');
-            detail = null;   // les vues fines seront relues (ex. après une remise à zéro)
-            if (['minute', 'heure', 'journee'].includes(periode)) chargerDetail().then(dessinerGraphique);
-            else dessinerGraphique();
+            detail = null;   // le détail sera relu (ex. après une remise à zéro)
+            dessinerGraphique();
+            chargerDetail().then(dessinerGraphique);
         }
 
         // Vues fines (minute, heure, heures de la journée) : les événements des 30 derniers jours sont lus
@@ -679,143 +682,195 @@
         }
         const deux = n => String(n).padStart(2, '0');
 
-        // Zoom et déplacement : « fenetre » = nombre de colonnes affichées, « decalage » = nombre de colonnes
-        // entre la dernière colonne affichée et maintenant (0 = jusqu'à maintenant)
-        const ZOOMS = { minute: [15, 30, 60, 120, 240], heure: [12, 24, 48, 96, 168], jour: [7, 14, 30, 60, 90], semaine: [4, 8, 12] };
-        const HISTORIQUE = { minute: 30 * 1440, heure: 30 * 24, jour: 90, semaine: 13 };   // colonnes disponibles en tout
-        const fenetre = { minute: 60, heure: 48, jour: 30, semaine: 12 };
-        let decalage = 0;
-        const decalageMax = () => Math.max(0, HISTORIQUE[periode] - fenetre[periode]);
+        // ---------- Graphique dans le temps, qu'on peut zoomer et déplacer comme une carte
+        // « vue » = début et fin de la période affichée (en millisecondes). La taille d'une barre s'adapte toute seule
+        // au zoom : 1 minute … 1 semaine. Détail à la minute / à l'heure : 30 derniers jours ; par jour : 90 jours.
+        const MIN = 60000, HEURE = 3600000, JOUR = 86400000;
+        const PAS = [[MIN, '1 minute'], [5 * MIN, '5 minutes'], [15 * MIN, '15 minutes'], [30 * MIN, '30 minutes'], [HEURE, '1 heure'],
+            [3 * HEURE, '3 heures'], [6 * HEURE, '6 heures'], [JOUR, '1 jour'], [7 * JOUR, '1 semaine']];
+        const ETENDUE_MIN = 15 * MIN, ETENDUE_MAX = 90 * JOUR;
+        let vue = { t0: Date.now() - 30 * JOUR, t1: Date.now() };
+        let dessine = { r0: 0, r1: 1 };   // période vraiment dessinée (des barres entières), pour les gestes
 
-        // Minutes, heures, jours, semaines (du lundi au dimanche),
-        // ou heures de la journée (total des 30 derniers jours, de 0 h à 23 h)
+        function limiterVue() {
+            const maintenant = Date.now(), plusTot = maintenant - ETENDUE_MAX;
+            let etendue = Math.min(Math.max(vue.t1 - vue.t0, ETENDUE_MIN), ETENDUE_MAX);
+            let t1 = Math.min(vue.t0 + etendue, maintenant);
+            let t0 = t1 - etendue;
+            if (t0 < plusTot) { t0 = plusTot; t1 = t0 + etendue; }
+            vue = { t0, t1 };
+        }
+        const minuitDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+        // Début de la barre qui contient le moment t (à l'heure suisse : minuit, lundi…)
+        function debutBarre(t, pas) {
+            if (pas === 7 * JOUR) { const d = new Date(minuitDe(t)); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); }
+            if (pas === JOUR) return minuitDe(t);
+            const m = minuitDe(t);
+            return m + Math.floor((t - m) / pas) * pas;
+        }
+        const suivante = (t, pas) => {
+            if (pas < JOUR) return t + pas;
+            const d = new Date(t); d.setDate(d.getDate() + pas / JOUR); return d.getTime();
+        };
+        const jourCourt = d => d.toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric', month: 'short' });
+        const hm = d => `${deux(d.getHours())}:${deux(d.getMinutes())}`;
+
         function serie() {
-            const auj = new Date();
             const evts = (detail || []).filter(e => e.type === mesure);
             if (periode === 'journee') {
                 const compte = new Array(24).fill(0);
                 evts.forEach(e => compte[e.t.getHours()]++);
-                return compte.map((valeur, h) => ({ etiquette: `${h} h`, detail: `De ${h} h à ${h + 1} h (30 derniers jours)`, valeur }));
+                return { barres: compte.map((valeur, h) => ({ etiquette: `${h} h`, detail: `De ${h} h à ${h + 1} h (30 derniers jours)`, valeur })) };
             }
-            const n = fenetre[periode], off = decalage;
-            const jourCourt = d => d.toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric', month: 'short' });
-            if (periode === 'minute' || periode === 'heure') {
-                const pas = periode === 'minute' ? 60000 : 3600000;
-                const fin = new Date(auj); periode === 'minute' ? fin.setSeconds(0, 0) : fin.setMinutes(0, 0, 0);
-                const debut = fin.getTime() - (off + n - 1) * pas, compte = new Array(n).fill(0);
-                evts.forEach(e => { const i = Math.floor((e.t.getTime() - debut) / pas); if (i >= 0 && i < n) compte[i]++; });
-                return compte.map((valeur, i) => {
-                    const d = new Date(debut + i * pas), hm = `${deux(d.getHours())}:${deux(d.getMinutes())}`;
-                    return periode === 'minute'
-                        ? { d, etiquette: hm, detail: `${jourCourt(d)}, ${hm}`, valeur }
-                        : { d, etiquette: d.getHours() === 0 ? jourCourt(d) : `${d.getHours()} h`, detail: `${jourCourt(d)}, ${d.getHours()} h – ${d.getHours() + 1} h`, valeur };
-                });
+            limiterVue();
+            const largeur = ($('graph').querySelector('.barres') || $('graph')).getBoundingClientRect().width || 600;
+            const maxBarres = Math.min(Math.max(Math.round(largeur / 7), 24), 96);
+            const etendue = vue.t1 - vue.t0;
+            const [pas, nomPas] = PAS.find(([p]) => etendue / p <= maxBarres) || PAS[PAS.length - 1];
+            const limiteDetail = Date.now() - 30 * JOUR;
+            const barres = [];
+            for (let t = debutBarre(vue.t0, pas); t < vue.t1 && barres.length < 200; t = suivante(t, pas)) {
+                const d = new Date(t), fin = suivante(t, pas);
+                let valeur = 0, manque = false;
+                if (pas < JOUR) {
+                    valeur = evts.filter(e => e.t.getTime() >= t && e.t.getTime() < fin).length;
+                    manque = t < limiteDetail || !detail;
+                } else {
+                    for (let j = new Date(t); j.getTime() < fin; j.setDate(j.getDate() + 1)) valeur += (parJour[cleJour(j)] || {})[mesure] || 0;
+                }
+                const debutJour = d.getHours() === 0 && d.getMinutes() === 0;
+                const etiquette = pas === 7 * JOUR || pas === JOUR ? d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })
+                    : debutJour ? d.toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric' })
+                    : pas < HEURE ? hm(d) : `${d.getHours()} h`;
+                const detailTxt = pas === 7 * JOUR ? 'Semaine du ' + d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })
+                    : pas === JOUR ? jourCourt(d)
+                    : pas < HEURE ? `${jourCourt(d)}, ${hm(d)} – ${hm(new Date(fin))}`
+                    : `${jourCourt(d)}, ${d.getHours()} h – ${new Date(fin).getHours() || 24} h`;
+                barres.push({ t, fin, etiquette, detail: detailTxt, valeur, manque });
             }
-            if (periode === 'jour') return Array.from({ length: n }, (_, i) => {
-                const d = decaler(auj, i - (n - 1) - off);
-                return { d, etiquette: d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }), detail: jourCourt(d),
-                    valeur: (parJour[cleJour(d)] || {})[mesure] || 0 };
-            });
-            const lundi = decaler(auj, -((auj.getDay() + 6) % 7));
-            return Array.from({ length: n }, (_, i) => {
-                const debut = decaler(lundi, (i - (n - 1) - off) * 7);
-                let valeur = 0;
-                for (let j = 0; j < 7; j++) valeur += (parJour[cleJour(decaler(debut, j))] || {})[mesure] || 0;
-                const etiquette = debut.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' });
-                return { d: debut, etiquette, detail: 'Semaine du ' + etiquette, valeur };
-            });
+            return { barres, pas, nomPas };
         }
 
         function dessinerGraphique() {
-            const s = serie();
+            const { barres: s, pas, nomPas } = serie();
             const max = Math.max(...s.map(p => p.valeur));
             const haut = max <= 4 ? 4 : Math.ceil(max / 4) * 4;   // graduations rondes : 0, 1/2, max
-            const pas = periode === 'journee' ? 3 : Math.max(1, Math.round(s.length / 6));   // environ 6 étiquettes
-            const TITRES = { minute: 'par minute', heure: 'par heure', jour: 'par jour', semaine: 'par semaine',
-                journee: 'selon l\'heure de la journée (total des 30 derniers jours)' };
-            const total = s.reduce((t, p) => t + p.valeur, 0);
-            const plage = periode === 'journee' ? '' : ` · ${s[0].detail} → ${decalage === 0 ? 'maintenant' : s[s.length - 1].detail} · total ${total}`;
-            $('graph-titre').textContent = `${NOMS[mesure]} ${TITRES[periode]}${plage}`;
-            majNavigation();
+            const tous = Math.max(1, Math.ceil(s.length / 6));      // environ 6 étiquettes
+            $('graph-titre').textContent = periode === 'journee' ? `${NOMS[mesure]} selon l'heure de la journée (30 derniers jours)` : NOMS[mesure];
+            if (periode !== 'journee') dessine = { r0: s[0].t, r1: s[s.length - 1].fin };
             $('graph').innerHTML = `
                 <div class="graph">
                     <div class="graph-y">${[haut, haut / 2, 0].map((v, i) => `<span style="top:${i * 50}%">${v}</span>`).join('')}</div>
                     <div class="graph-zone">
                         <div class="grille" style="top:0"></div><div class="grille" style="top:50%"></div>
                         <div class="barres">${s.map((p, i) => `
-                            <div class="col" data-info="${esc(p.detail)} : ${p.valeur} ${UNITES[mesure]}">
+                            <div class="col" data-info="${esc(p.detail)} : ${p.manque ? 'pas de détail' : p.valeur + ' ' + UNITES[mesure]}">
                                 <div class="barre" style="height:${(p.valeur / haut) * 100}%"></div>
-                                ${(periode === 'journee' ? i % pas === 0 : (s.length - 1 - i) % pas === 0) ? `<span class="x">${esc(p.etiquette)}</span>` : ''}
+                                ${i % tous === 0 ? `<span class="x">${esc(p.etiquette)}</span>` : ''}
                             </div>`).join('')}
                         </div>
                     </div>
                 </div>
                 <div class="graph-pied"></div>`;
-        }
-
-        // ---------- Navigation dans le graphique
-        function majNavigation() {
             const nav = $('graph-nav');
             nav.hidden = periode === 'journee';
-            if (nav.hidden) return;
-            const max = decalageMax();
-            decalage = Math.min(Math.max(0, decalage), max);
-            $('graph-curseur').max = max;
-            $('graph-curseur').value = max - decalage;   // tout à droite = maintenant
-            $('graph-curseur').disabled = max === 0;
-            const z = ZOOMS[periode], k = z.indexOf(fenetre[periode]);
-            nav.querySelector('[data-nav="gauche"]').disabled = decalage >= max;
-            nav.querySelector('[data-nav="droite"]').disabled = nav.querySelector('[data-nav="maintenant"]').disabled = decalage === 0;
-            nav.querySelector('[data-nav="plus"]').disabled = k <= 0;
-            nav.querySelector('[data-nav="moins"]').disabled = k >= z.length - 1;
+            if (periode === 'journee') { $('graph-info').textContent = ''; return; }
+            const total = s.reduce((t, p) => t + p.valeur, 0);
+            const auBout = Date.now() - vue.t1 < pas;
+            const deb = new Date(s[0].t), finAff = new Date(s[s.length - 1].t);
+            const date = d => pas >= JOUR ? jourCourt(d) : `${jourCourt(d)} ${pas < HEURE ? hm(d) : d.getHours() + ' h'}`;
+            $('graph-info').textContent = `${date(deb)} → ${auBout ? 'maintenant' : date(finAff)} · une barre = ${nomPas} · total ${total}`
+                + (s.some(p => p.manque) && detail ? ' · détail à la minute ou à l\'heure : 30 derniers jours' : '');
+            nav.querySelector('[data-nav="plus"]').disabled = vue.t1 - vue.t0 <= ETENDUE_MIN;
+            nav.querySelector('[data-nav="moins"]').disabled = vue.t1 - vue.t0 >= ETENDUE_MAX;
+            nav.querySelector('[data-nav="maintenant"]').disabled = auBout;
+            $('choix-periode').querySelectorAll('button').forEach(b => b.classList.toggle('actif',
+                b.dataset.plage !== 'journee' && auBout && Math.abs((vue.t1 - vue.t0) - Number(b.dataset.plage) * HEURE) < HEURE / 2));
         }
-        function zoomer(sens) {
-            const z = ZOOMS[periode], k = z.indexOf(fenetre[periode]), nk = Math.min(Math.max(k + sens, 0), z.length - 1);
-            if (nk === k) return;
-            const centre = decalage + fenetre[periode] / 2;   // on garde le même moment au milieu
-            fenetre[periode] = z[nk];
-            decalage = decalage === 0 ? 0 : Math.round(centre - z[nk] / 2);   // collé à « maintenant » s'il y était
-            dessinerGraphique();
+
+        // Zoomer autour d'un moment (« ancre », en fraction de la largeur : 0 = à gauche, 1 = à droite)
+        function zoomerVers(facteur, ancre = 0.5) {
+            const etendue = vue.t1 - vue.t0, tAncre = vue.t0 + ancre * etendue;
+            const nouvelle = Math.min(Math.max(etendue * facteur, ETENDUE_MIN), ETENDUE_MAX);
+            vue = { t0: tAncre - ancre * nouvelle, t1: tAncre + (1 - ancre) * nouvelle };
+            redessiner();
         }
+        let imageEnAttente = 0;
+        function redessiner() {   // au plus une fois par image, pour que les gestes restent fluides
+            if (imageEnAttente) return;
+            imageEnAttente = requestAnimationFrame(() => { imageEnAttente = 0; montrerBulle(null); dessinerGraphique(); });
+        }
+        const zoneGraphique = () => ($('graph').querySelector('.barres') || $('graph')).getBoundingClientRect();
+        const fraction = x => { const z = zoneGraphique(); return Math.min(Math.max((x - z.left) / z.width, 0), 1); };
+
         $('graph-nav').addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-nav]');
             if (!btn || btn.disabled) return;
-            const moitie = Math.max(1, Math.ceil(fenetre[periode] / 2));
-            if (btn.dataset.nav === 'gauche') decalage += moitie;
-            if (btn.dataset.nav === 'droite') decalage -= moitie;
-            if (btn.dataset.nav === 'maintenant') decalage = 0;
-            if (btn.dataset.nav === 'plus') return zoomer(-1);
-            if (btn.dataset.nav === 'moins') return zoomer(1);
-            dessinerGraphique();
+            if (btn.dataset.nav === 'plus') zoomerVers(0.5, 0.5);
+            if (btn.dataset.nav === 'moins') zoomerVers(2, 0.5);
+            if (btn.dataset.nav === 'maintenant') { const e2 = vue.t1 - vue.t0; vue = { t0: Date.now() - e2, t1: Date.now() }; redessiner(); }
         });
-        $('graph-curseur').addEventListener('input', () => {
-            decalage = Number($('graph-curseur').max) - Number($('graph-curseur').value);
-            dessinerGraphique();
-        });
-        // Glisser le doigt ou la souris sur le graphique : vers la droite = plus ancien
-        let glisse = null;
+
+        // Gestes : un doigt / la souris = déplacer ; deux doigts = zoomer autour du milieu des doigts
+        const doigts = new Map();
+        let geste = null, aBouge = false;
+        function debutGeste() {
+            const pts = [...doigts.values()], z = zoneGraphique();
+            const etendue = dessine.r1 - dessine.r0;
+            if (pts.length === 1) geste = { type: 'glisser', x: pts[0].x, t0: vue.t0, t1: vue.t1, msParPx: etendue / z.width };
+            else if (pts.length >= 2) {
+                const [a, b] = pts, milieu = (a.x + b.x) / 2;
+                const f = fraction(milieu);
+                geste = { type: 'pincer', dist: Math.max(Math.abs(a.x - b.x), 20), etendue: vue.t1 - vue.t0, f, tAncre: vue.t0 + f * (vue.t1 - vue.t0) };
+            }
+        }
         $('graph').addEventListener('pointerdown', (e) => {
             if (periode === 'journee') return;
-            const zone = $('graph').querySelector('.barres');
-            if (!zone) return;
-            glisse = { x: e.clientX, depart: decalage, largeur: zone.getBoundingClientRect().width / fenetre[periode], bouge: false };
+            doigts.set(e.pointerId, { x: e.clientX });
+            if (doigts.size === 1) aBouge = false;
+            $('graph').setPointerCapture(e.pointerId);
+            debutGeste();
         });
-        window.addEventListener('pointermove', (e) => {
-            if (!glisse) return;
-            const dx = e.clientX - glisse.x;
-            if (!glisse.bouge && Math.abs(dx) < 8) return;
-            glisse.bouge = true;
-            const nouveau = Math.min(Math.max(0, glisse.depart + Math.round(dx / glisse.largeur)), decalageMax());
-            if (nouveau !== decalage) { decalage = nouveau; montrerBulle(null); dessinerGraphique(); }
+        $('graph').addEventListener('pointermove', (e) => {
+            if (!doigts.has(e.pointerId) || !geste) return;
+            doigts.get(e.pointerId).x = e.clientX;
+            const pts = [...doigts.values()];
+            if (geste.type === 'glisser' && pts.length === 1) {
+                const dx = pts[0].x - geste.x;
+                if (!aBouge && Math.abs(dx) < 6) return;
+                aBouge = true;
+                $('graph').classList.add('glisse');
+                vue = { t0: geste.t0 - dx * geste.msParPx, t1: geste.t1 - dx * geste.msParPx };
+                redessiner();
+            } else if (geste.type === 'pincer' && pts.length >= 2) {
+                aBouge = true;
+                const dist = Math.max(Math.abs(pts[0].x - pts[1].x), 20);
+                const nouvelle = Math.min(Math.max(geste.etendue * geste.dist / dist, ETENDUE_MIN), ETENDUE_MAX);
+                vue = { t0: geste.tAncre - geste.f * nouvelle, t1: geste.tAncre + (1 - geste.f) * nouvelle };
+                redessiner();
+            }
         });
-        window.addEventListener('pointerup', () => { glisse = null; });
-        window.addEventListener('pointercancel', () => { glisse = null; });
-        // Molette (ordinateur) : Ctrl + molette pour zoomer
+        function finDoigt(e) {
+            doigts.delete(e.pointerId);
+            $('graph').classList.remove('glisse');
+            geste = null;
+            if (doigts.size) debutGeste();   // on lève un doigt sur deux : on continue en glissant
+        }
+        $('graph').addEventListener('pointerup', finDoigt);
+        $('graph').addEventListener('pointercancel', finDoigt);
+        // Pavé tactile / molette : pincer (ou Ctrl + molette) = zoomer ; glisser à deux doigts sur le côté = se déplacer
         $('graph').addEventListener('wheel', (e) => {
-            if (periode === 'journee' || !e.ctrlKey) return;
-            e.preventDefault();
-            zoomer(e.deltaY < 0 ? -1 : 1);
+            if (periode === 'journee') return;
+            if (e.ctrlKey) { e.preventDefault(); zoomerVers(Math.exp(e.deltaY * 0.01), fraction(e.clientX)); }
+            else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                e.preventDefault();
+                const decal = e.deltaX * (dessine.r1 - dessine.r0) / zoneGraphique().width;
+                vue = { t0: vue.t0 + decal, t1: vue.t1 + decal };
+                redessiner();
+            }
         }, { passive: false });
+        // Double-clic (ou double toucher) : zoomer à cet endroit
+        $('graph').addEventListener('dblclick', (e) => { if (periode !== 'journee') zoomerVers(0.5, fraction(e.clientX)); });
 
         // Bulle au survol (ordinateur) ou au toucher (téléphone) sur une colonne du graphique
         function montrerBulle(col) {
@@ -835,7 +890,7 @@
         }
         $('graph').addEventListener('mouseover', (e) => montrerBulle(e.target.closest('.col')));
         $('graph').addEventListener('mouseleave', () => montrerBulle(null));
-        $('graph').addEventListener('click', (e) => montrerBulle(e.target.closest('.col')));
+        $('graph').addEventListener('click', (e) => { if (!aBouge) montrerBulle(e.target.closest('.col')); });
 
         // Efface toutes les statistiques et remet les clics WhatsApp des tuteurs à 0 (ex. au lancement du site).
         // Il faut retaper le mot de passe admin pour confirmer.
@@ -867,15 +922,17 @@
             dessinerGraphique();
         });
         $('choix-periode').addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-periode]');
+            const btn = e.target.closest('button[data-plage]');
             if (!btn) return;
-            periode = btn.dataset.periode;
-            decalage = 0;
-            $('choix-periode').querySelectorAll('button').forEach(b => b.classList.toggle('actif', b === btn));
-            if (['minute', 'heure', 'journee'].includes(periode)) {
-                if (!detail) $('graph').innerHTML = '<p class="vide">Chargement…</p>';
-                chargerDetail().then(dessinerGraphique);
-            } else dessinerGraphique();
+            if (btn.dataset.plage === 'journee') {
+                periode = 'journee';
+                $('choix-periode').querySelectorAll('button').forEach(b => b.classList.toggle('actif', b === btn));
+            } else {
+                periode = 'temps';
+                vue = { t0: Date.now() - Number(btn.dataset.plage) * HEURE, t1: Date.now() };
+            }
+            if (!detail) { $('graph').innerHTML = '<p class="vide">Chargement…</p>'; chargerDetail().then(dessinerGraphique); }
+            else dessinerGraphique();
         });
 
         // Sur téléphone : un onglet par partie (tuteurs, matières, statistiques)
