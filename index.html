@@ -257,8 +257,9 @@
             faculteCourante = cle;
             const colonnes = 'id, prenom, nom, matieres, prix, lieu, whatsapp, compteur_clics, badge_verifie, fondateur, langues';
             const charger = cols => db.from('tuteurs').select(cols).eq('status', 'valide').eq('faculte', cle).eq('annee', a);
-            let { data, error } = await charger(colonnes + ', indisponible');
-            // Si la colonne « indisponible » n'existe pas encore dans Supabase, on charge sans elle
+            let { data, error } = await charger(colonnes + ', indisponible, mis_en_avant');
+            // Si une colonne récente n'existe pas encore dans Supabase, on charge sans elle
+            if (error) ({ data, error } = await charger(colonnes + ', indisponible'));
             if (error) ({ data, error } = await charger(colonnes));
 
             if (error) {
@@ -282,21 +283,25 @@
         const MATIERES_VISIBLES = 3;
         const NOM_FONDATEUR = { fondateur: 'Fondateur', cofondateur: 'Cofondateur' };
 
-        // Tri « Recommandé » : le Fondateur est placé au hasard entre la 2e et la 4e place, le Cofondateur entre la 3e et la 6e
-        // (jamais à la même place ; nouvelle place à chaque affichage ; plus haut s'il y a moins de tuteurs)
-        const PLACES_FONDATEUR = { fondateur: [1, 2, 3], cofondateur: [2, 3, 4, 5] }; // index 0 = 1re place
+        // Tri « Recommandé » : le Fondateur est placé au hasard entre la 2e et la 4e place, le Cofondateur entre la 3e et la 6e,
+        // et les profils mis en avant depuis l'admin (⭐, rien n'est affiché sur le site) entre la 1re et la 5e.
+        // Jamais deux à la même place ; nouvelle place à chaque affichage ; plus haut s'il y a moins de tuteurs.
+        const PLACES_SPECIALES = { fondateur: [1, 2, 3], cofondateur: [2, 3, 4, 5], avant: [0, 1, 2, 3, 4] }; // index 0 = 1re place
+        const genre = t => t.fondateur === 'fondateur' || t.fondateur === 'cofondateur' ? t.fondateur : t.fondateur ? 'cofondateur' : t.mis_en_avant ? 'avant' : null;
         function placerFondateurs(tuteurs) {
-            const resultat = tuteurs.filter(t => !t.fondateur);
+            const resultat = tuteurs.filter(t => !genre(t));
             const prises = new Set();
-            const places = tuteurs.filter(t => t.fondateur)
-                .sort((x, y) => (x.fondateur === 'fondateur' ? 0 : 1) - (y.fondateur === 'fondateur' ? 0 : 1))
+            const ORDRE = { fondateur: 0, cofondateur: 1, avant: 2 };
+            const places = tuteurs.filter(t => genre(t))
+                .sort((x, y) => ORDRE[genre(x)] - ORDRE[genre(y)])
                 .map(t => {
-                    const libres = (PLACES_FONDATEUR[t.fondateur] || PLACES_FONDATEUR.cofondateur).filter(p => !prises.has(p));
-                    const place = libres.length ? libres[Math.floor(Math.random() * libres.length)] : Infinity;
+                    const libres = PLACES_SPECIALES[genre(t)].filter(p => !prises.has(p));
+                    let place = libres.length ? libres[Math.floor(Math.random() * libres.length)] : null;
+                    if (place === null) { place = 5; while (prises.has(place)) place++; }   // plus de place libre : juste après
                     prises.add(place);
                     return { t, place };
                 });
-            // Insérer de la plus petite place à la plus grande : un ajout ne décale jamais un fondateur déjà placé
+            // Insérer de la plus petite place à la plus grande : un ajout ne décale jamais un profil déjà placé
             places.sort((x, y) => x.place - y.place).forEach(({ t, place }) => resultat.splice(Math.min(place, resultat.length), 0, t));
             return resultat;
         }
