@@ -60,7 +60,7 @@
         .commandes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin: 18px 0 12px; }
         .choix-mesure { font: inherit; font-size: 0.9rem; font-weight: 600; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; }
         .tuiles-titre { margin: 0 0 10px; font-size: 0.85rem; color: #64748b; }
-        .segments { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; }
+        .segments { display: inline-flex; flex-wrap: wrap; background: #f1f5f9; border-radius: 10px; padding: 3px; }
         .segments button { padding: 7px 12px; font-size: 0.85rem; background: transparent; color: #334155; border-radius: 8px; }
         .segments button.actif { background: white; color: var(--dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .graph-titre { font-weight: 700; margin: 0 0 8px; font-size: 0.95rem; }
@@ -170,8 +170,11 @@
                         <option value="candidature">Candidatures envoyées</option>
                     </select>
                     <div class="segments" id="choix-periode">
+                        <button type="button" data-periode="minute">Par minute</button>
+                        <button type="button" data-periode="heure">Par heure</button>
                         <button type="button" class="actif" data-periode="jour">Par jour</button>
                         <button type="button" data-periode="semaine">Par semaine</button>
+                        <button type="button" data-periode="journee">Heures de la journée</button>
                     </div>
                 </div>
                 <p class="graph-titre" id="graph-titre"></p>
@@ -630,12 +633,57 @@
             data.forEach(r => { (parJour[r.jour] = parJour[r.jour] || {})[r.type] = Number(r.total); });
             $('tuiles').innerHTML = Object.keys(NOMS).map(type =>
                 `<div class="tuile"><div class="val">${somme(type, 7)}</div><div class="lib">${NOMS[type]}</div></div>`).join('');
-            dessinerGraphique();
+            detail = null;   // les vues fines seront relues (ex. après une remise à zéro)
+            if (['minute', 'heure', 'journee'].includes(periode)) chargerDetail().then(dessinerGraphique);
+            else dessinerGraphique();
         }
 
-        // 30 derniers jours, ou 12 dernières semaines (du lundi au dimanche)
+        // Vues fines (minute, heure, heures de la journée) : les événements des 30 derniers jours sont lus
+        // directement dans la table « evenements » (lecture permise à l'admin et à l'associé), par paquets de 1000.
+        let detail = null, detailCharge = 0, detailEnCours = null;
+        async function chargerDetail() {
+            if (detail && Date.now() - detailCharge < 60000) return;
+            if (detailEnCours) return detailEnCours;
+            detailEnCours = (async () => {
+                const depuis = decaler(new Date(), -30).toISOString(), lignes = [];
+                for (let page = 0; page < 50; page++) {
+                    const { data, error } = await db.from('evenements').select('type, created_at')
+                        .gte('created_at', depuis).order('created_at', { ascending: true }).range(page * 1000, page * 1000 + 999);
+                    if (error) { console.error(error); break; }
+                    lignes.push(...data);
+                    if (data.length < 1000) break;
+                }
+                detail = lignes.map(l => ({ type: l.type, t: new Date(l.created_at) }));
+                detailCharge = Date.now();
+            })();
+            await detailEnCours;
+            detailEnCours = null;
+        }
+        const deux = n => String(n).padStart(2, '0');
+
+        // 60 dernières minutes, 48 dernières heures, 30 derniers jours, 12 dernières semaines (du lundi au dimanche),
+        // ou heures de la journée (total des 30 derniers jours, de 0 h à 23 h)
         function serie() {
             const auj = new Date();
+            const evts = (detail || []).filter(e => e.type === mesure);
+            if (periode === 'minute' || periode === 'heure') {
+                const pas = periode === 'minute' ? 60000 : 3600000, n = periode === 'minute' ? 60 : 48;
+                const fin = new Date(auj); periode === 'minute' ? fin.setSeconds(0, 0) : fin.setMinutes(0, 0, 0);
+                const debut = fin.getTime() - (n - 1) * pas, compte = new Array(n).fill(0);
+                evts.forEach(e => { const i = Math.floor((e.t.getTime() - debut) / pas); if (i >= 0 && i < n) compte[i]++; });
+                return compte.map((valeur, i) => {
+                    const d = new Date(debut + i * pas);
+                    const jour = d.toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric', month: 'short' });
+                    return periode === 'minute'
+                        ? { d, etiquette: `${deux(d.getHours())}:${deux(d.getMinutes())}`, detail: `${deux(d.getHours())}:${deux(d.getMinutes())}`, valeur }
+                        : { d, etiquette: `${d.getHours()} h`, detail: `${jour}, ${d.getHours()} h – ${d.getHours() + 1} h`, valeur };
+                });
+            }
+            if (periode === 'journee') {
+                const compte = new Array(24).fill(0);
+                evts.forEach(e => compte[e.t.getHours()]++);
+                return compte.map((valeur, h) => ({ etiquette: `${h} h`, detail: `De ${h} h à ${h + 1} h (30 derniers jours)`, valeur }));
+            }
             if (periode === 'jour') return Array.from({ length: 30 }, (_, i) => {
                 const d = decaler(auj, i - 29);
                 return { d, etiquette: d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }),
@@ -656,8 +704,10 @@
             const s = serie();
             const max = Math.max(...s.map(p => p.valeur));
             const haut = max <= 4 ? 4 : Math.ceil(max / 4) * 4;   // graduations rondes : 0, 1/2, max
-            const pas = periode === 'jour' ? 5 : 2;                // une étiquette sur 5 jours / 2 semaines
-            $('graph-titre').textContent = `${NOMS[mesure]} ${periode === 'jour' ? 'par jour (30 derniers jours)' : 'par semaine (12 dernières semaines)'}`;
+            const pas = { minute: 10, heure: 6, jour: 5, semaine: 2, journee: 3 }[periode];   // une étiquette sur N colonnes
+            const TITRES = { minute: 'par minute (60 dernières minutes)', heure: 'par heure (48 dernières heures)', jour: 'par jour (30 derniers jours)',
+                semaine: 'par semaine (12 dernières semaines)', journee: 'selon l\'heure de la journée (total des 30 derniers jours)' };
+            $('graph-titre').textContent = `${NOMS[mesure]} ${TITRES[periode]}`;
             $('graph').innerHTML = `
                 <div class="graph">
                     <div class="graph-y">${[haut, haut / 2, 0].map((v, i) => `<span style="top:${i * 50}%">${v}</span>`).join('')}</div>
@@ -666,7 +716,7 @@
                         <div class="barres">${s.map((p, i) => `
                             <div class="col" data-info="${esc(p.detail)} : ${p.valeur} ${UNITES[mesure]}">
                                 <div class="barre" style="height:${(p.valeur / haut) * 100}%"></div>
-                                ${(s.length - 1 - i) % pas === 0 ? `<span class="x">${esc(p.etiquette)}</span>` : ''}
+                                ${(periode === 'journee' ? i % pas === 0 : (s.length - 1 - i) % pas === 0) ? `<span class="x">${esc(p.etiquette)}</span>` : ''}
                             </div>`).join('')}
                         </div>
                     </div>
@@ -728,7 +778,10 @@
             if (!btn) return;
             periode = btn.dataset.periode;
             $('choix-periode').querySelectorAll('button').forEach(b => b.classList.toggle('actif', b === btn));
-            dessinerGraphique();
+            if (['minute', 'heure', 'journee'].includes(periode)) {
+                if (!detail) $('graph').innerHTML = '<p class="vide">Chargement…</p>';
+                chargerDetail().then(dessinerGraphique);
+            } else dessinerGraphique();
         });
 
         // Sur téléphone : un onglet par partie (tuteurs, matières, statistiques)
