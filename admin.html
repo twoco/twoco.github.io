@@ -91,6 +91,8 @@
         .outils-tuteurs select, .outils-tuteurs input { margin: 0; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; background: white; }
         .outils-tuteurs select { flex: 0 1 220px; }
         .outils-tuteurs input { flex: 1 1 260px; width: auto; }
+        .copier-emails { display: flex; gap: 8px; align-items: center; }
+        .copier-emails select { margin: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 0.9rem; background: white; }
         .compte { font-size: 0.9rem; font-weight: 600; color: #64748b; }
         .tuteur-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 14px; display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .tuteur-card h3 { margin: 0 0 6px; }
@@ -204,7 +206,10 @@
                     <div id="liste-attente"></div>
                     <div class="titre-ligne">
                         <h2>Profils publiés <span class="compte" id="compte-valides"></span></h2>
-                        <button type="button" class="btn-n petit" id="copier-emails">Copier tous les e-mails</button>
+                        <div class="copier-emails">
+                            <select id="emails-fac" aria-label="E-mails à copier"><option value="">Tous les tuteurs</option></select>
+                            <button type="button" class="btn-n petit" id="copier-emails">Copier les e-mails</button>
+                        </div>
                     </div>
                     <div id="liste-valides"></div>
                 </div>
@@ -372,7 +377,13 @@
             $('filtre-fac').innerHTML = '<option value="">Toutes les facultés</option>' + cles
                 .map(c => `<option value="${esc(c)}">${esc(nomFaculte(c))} (${nb(c)})</option>`).join('');
             $('filtre-fac').value = cles.includes(choix) ? choix : '';
+            // Menu « Copier les e-mails » : tous les tuteurs publiés, ou ceux d'une faculté (les nouvelles facultés s'ajoutent toutes seules)
+            const choixEmails = $('emails-fac').value;
+            $('emails-fac').innerHTML = `<option value="">Tous les tuteurs (${emailsPublies('').length})</option>` + cles
+                .map(c => `<option value="${esc(c)}">${esc(nomFaculte(c))} (${emailsPublies(c).length})</option>`).join('');
+            $('emails-fac').value = cles.includes(choixEmails) ? choixEmails : '';
         }
+        const emailsPublies = fac => [...new Set(fiches.filter(t => t.status === 'valide' && t.email && (!fac || t.faculte === fac)).map(t => t.email))];
         // Un tuteur correspond si chaque mot cherché se trouve dans son nom, prénom, e-mail, matières ou numéro
         // (numéro : espaces ignorés, et « 079… » trouve « 4179… »)
         function correspond(t) {
@@ -580,11 +591,13 @@
 
         // ---------- Copier les e-mails des tuteurs publiés (pour l'e-mail groupé en Cci)
         $('copier-emails').addEventListener('click', async () => {
-            const emails = [...new Set(fiches.filter(t => t.status === 'valide' && t.email).map(t => t.email))];
-            if (!emails.length) return alert('Aucun e-mail à copier.');
+            const fac = $('emails-fac').value;
+            const emails = emailsPublies(fac);
+            const qui = fac ? ` des tuteurs ${nomFaculte(fac)}` : ' de tous les tuteurs';
+            if (!emails.length) return alert(`Aucun e-mail à copier${qui}.`);
             try {
                 await navigator.clipboard.writeText(emails.join(', '));
-                alert(`${emails.length} e-mail(s) copié(s). Colle-les dans le champ « Cci » de Gmail.`);
+                alert(`${emails.length} e-mail(s)${qui} copié(s). Colle-les dans le champ « Cci » de Gmail.`);
             } catch (e) {
                 prompt('Copie ces e-mails :', emails.join(', '));
             }
