@@ -33,7 +33,6 @@
         .card { max-width: 560px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); line-height: 1.5; }
         h1, h2 { margin: 0 0 6px; font-size: 1.6rem; }
         .intro { margin: 0; color: #64748b; }
-        .intro.deja { margin-top: 8px; font-size: 0.85rem; }
         .intro a { color: var(--blue); }
         /* Chaque partie : titre en petites capitales sur une fine ligne foncée */
         .etape { margin-top: 44px; }
@@ -81,6 +80,8 @@
         /* Où payer la commission (numéro TWINT + bouton Copier) */
         .contact-aide { background: #eff6ff; color: #1e3a8a; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; margin: 10px 0 0; text-align: left; }
         .contact-aide a { color: inherit; font-weight: 700; }
+        .contact-aide p { margin: 0; }
+        .contact-aide p + p { margin-top: 8px; }
         .twint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 8px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; text-align: left; }
         .twint > span { flex: 1 1 260px; }
         .twint .copier { width: auto; margin: 0; padding: 8px 14px; background: white; color: var(--dark); border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
@@ -118,8 +119,10 @@
         <form id="formulaire" novalidate>
             <h1>Devenir tuteur</h1>
             <p class="intro">Environ 2 minutes. À la fin, tu confirmes ton adresse e-mail avec un code reçu par e-mail. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
-            <p class="contact-aide">✉️ Une question ? Écris-nous à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a></p>
-            <p class="intro deja">Déjà inscrit ? Pour modifier ton profil, réinscris-toi simplement avec le même numéro WhatsApp et la même adresse e-mail. Ton nouveau profil remplacera l'ancien après validation, et ton badge « Vérifié » est conservé.</p>
+            <div class="contact-aide">
+                <p>✏️ <strong>Déjà inscrit et tu veux modifier ton profil ?</strong> Pas besoin de nous écrire : remplis simplement ce formulaire à nouveau avec le <strong>même numéro WhatsApp</strong> et la <strong>même adresse e-mail</strong>. Ton nouveau profil remplacera l'ancien après validation, et ton badge « Vérifié » est conservé.</p>
+                <p>✉️ Une autre question ? Écris-nous à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a></p>
+            </div>
 
             <div class="etape">
                 <h2>Tes informations</h2>
