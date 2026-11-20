@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploiement.outputs.page_url }}
+      url: ${{ steps.essai1.outputs.page_url || steps.essai2.outputs.page_url || steps.essai3.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - name: Numéro de version sur les fichiers
@@ -34,5 +34,21 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
-      - id: deploiement
+      # GitHub Pages refuse parfois la mise en ligne pendant quelques minutes (« Fetching artifact metadata failed »).
+      # On réessaie tout seul : après 1 minute, puis après 3 minutes. Si le 3e essai échoue aussi, GitHub envoie un e-mail.
+      - id: essai1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Attendre 1 minute avant de réessayer
+        if: steps.essai1.outcome == 'failure'
+        run: sleep 60
+      - id: essai2
+        if: steps.essai1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Attendre 3 minutes avant le dernier essai
+        if: steps.essai1.outcome == 'failure' && steps.essai2.outcome == 'failure'
+        run: sleep 180
+      - id: essai3
+        if: steps.essai1.outcome == 'failure' && steps.essai2.outcome == 'failure'
         uses: actions/deploy-pages@v4
