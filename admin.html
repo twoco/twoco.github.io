@@ -340,7 +340,7 @@
                         <p><strong>Prix :</strong> ${esc(t.prix)} | <strong>Lieu :</strong> ${esc(t.lieu)}</p>
                         <p><strong>WhatsApp :</strong> ${esc(t.whatsapp)}</p>
                         ${t.langues ? `<p><strong>Langues :</strong> ${esc(t.langues)}</p>` : ''}
-                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur (3e à 6e place)' : 'Fondateur (2e à 4e place)'}</strong>` : ''}${t.indisponible ? ' | ⏸️ <strong>Indisponible</strong>' : ''}</p>` : ''}
+                        ${t.status === 'valide' ? `<p><strong>Clics WhatsApp :</strong> ${esc(t.compteur_clics || 0)} | ${t.badge_verifie ? `★ <strong>Vérifié</strong> · ${esc(chf(paiements.filter(p => p.tuteur_id === String(t.id)).reduce((s, p) => s + Number(p.montant), 0)))} payés` : '🌱 Nouveau'}${t.fondateur ? ` | 📌 <strong>${t.fondateur === 'cofondateur' ? 'Cofondateur (3e à 6e place)' : 'Fondateur (2e à 4e place)'}</strong>` : ''}${t.indisponible ? ' | ⏸️ <strong>Indisponible</strong>' : ''}${t.mis_en_avant && !t.fondateur ? ' | ⭐ <strong>Mis en avant</strong> (1re à 5e place, rien d\'affiché sur le site)' : ''}</p>` : ''}
                         ${t.email ? `<p><strong>E-mail :</strong> ${esc(t.email)}</p>` : ''}
                         ${t.cgu_acceptees ? `<p><strong>CGU :</strong> ${esc(t.cgu_version)} acceptées${t.cgu_date ? ' le ' + esc(new Date(t.cgu_date).toLocaleString('fr-CH')) : ''}</p>` : ''}
                     </div>
@@ -443,6 +443,8 @@
                       label: !t.fondateur ? '📌 Fondateur' : t.fondateur === 'fondateur' ? '📌 Cofondateur' : 'Retirer 📌' },
                     // Pause (profil visible, sans WhatsApp) : seulement pour les profils Fondateur / Cofondateur
                     ...(t.fondateur ? [{ cls: 'btn-n', action: 'dispo', label: t.indisponible ? '▶️ Rendre disponible' : '⏸️ Indisponible' }] : []),
+                    // ⭐ Mise en avant discrète (1re à 5e place dans « Recommandé ») : pas pour les fondateurs, déjà placés
+                    ...(t.fondateur ? [] : [{ cls: 'btn-n', action: 'avant', label: t.mis_en_avant ? '⭐ Retirer la mise en avant' : '⭐ Mettre en avant' }]),
                     { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
                     { cls: 'btn-d', action: 'supprimer', label: 'Supprimer' }])).join('')
                 : `<p class="vide">${filtre && rendu.valides.length ? 'Aucun profil ne correspond.' : 'Aucun profil publié.'}</p>`;
@@ -469,6 +471,12 @@
                 resultat = await db.from('tuteurs').delete().eq('id', id).select();
             } else if (action === 'dispo') {
                 resultat = await db.from('tuteurs').update({ indisponible: !tuteur.indisponible }).eq('id', id).select();
+            } else if (action === 'avant') {
+                resultat = await db.from('tuteurs').update({ mis_en_avant: !tuteur.mis_en_avant }).eq('id', id).select();
+                if (resultat.error && /mis_en_avant/.test(resultat.error.message || '')) {
+                    alert('La mise en avant n\'est pas encore installée dans Supabase : lance d\'abord la commande SQL (voir NOTES.md, « Mise en avant »).');
+                    return;
+                }
             } else if (action === 'fondateur') {
                 const suivant = !tuteur.fondateur ? 'fondateur' : tuteur.fondateur === 'fondateur' ? 'cofondateur' : null;
                 resultat = await db.from('tuteurs').update({ fondateur: suivant }).eq('id', id).select();
@@ -500,6 +508,7 @@
                         badge_verifie: anciens.some(t => t.badge_verifie),
                         fondateur: (anciens.find(t => t.fondateur) || {}).fondateur || null,
                         ...(anciens.some(t => t.indisponible) ? { indisponible: true } : {}),
+                        ...(anciens.some(t => t.mis_en_avant) ? { mis_en_avant: true } : {}),
                         compteur_clics: Math.max(...anciens.map(t => t.compteur_clics || 0))
                     }).eq('id', id);
                     if (anciens.length) await db.from('paiements').update({ tuteur_id: id }).in('tuteur_id', anciens.map(t => String(t.id)));
