@@ -33,9 +33,16 @@
         .lien-profil { color: white; text-decoration: none; font-weight: 600; font-size: 0.95rem; white-space: nowrap; padding: 7px 14px; border: 1.5px solid #94a3b8; border-radius: 8px; }
         .lien-profil:hover { border-color: white; background: rgba(255,255,255,0.08); }
         .btn-inscription { white-space: nowrap; }
-        @media (max-width: 420px) { .navbar { padding: 12px 14px; } .navbar .brand-title { font-size: 1.5rem; } .nav-liens { gap: 8px; } .lien-profil { font-size: 0.85rem; padding: 7px 10px; } .btn-inscription { padding: 8px 10px; font-size: 0.85rem; } }
-        @media (max-width: 345px) { .navbar .brand-title > span { display: none; } }   /* très petit écran : le logo seul */
-        @media (max-width: 360px) { .navbar .brand-title { font-size: 1.4rem; } .nav-liens { gap: 6px; } .lien-profil { font-size: 0.8rem; padding: 6px 8px; } .btn-inscription { padding: 7px 9px; font-size: 0.8rem; } }
+        /* Téléphone : boutons plus petits, toujours au moins 16 px entre le logo et les boutons */
+        @media (max-width: 480px) {
+            .navbar { padding: 12px 14px; gap: 16px; }
+            .navbar .brand-title { font-size: 1.35rem; gap: 7px; flex-shrink: 0; }
+            .nav-liens { gap: 8px; }
+            .lien-profil { font-size: 0.8rem; padding: 6px 10px; }
+            .btn-inscription { font-size: 0.8rem; padding: 7.5px 10px; }
+        }
+        /* Très petit téléphone (moins de 375 px) : le logo seul, sans le mot « twoco » */
+        @media (max-width: 374px) { .navbar .brand-title > span { display: none; } }
         /* Bande avec l'illustration de l'Amphimax (dégradé à gauche pour lire le texte) */
         .hero { display: flex; flex-direction: column; justify-content: flex-start; min-height: 380px; padding: 56px max(24px, calc((100% - 1100px) / 2 + 20px)); box-sizing: border-box; color: white; margin-bottom: 40px;
             background-color: #3b4f8f; background-position: center 50%; background-size: cover;
