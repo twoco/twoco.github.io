@@ -363,7 +363,9 @@
             }
             const attente = data.filter(t => t.status === 'en_attente');
             // Une candidature dont le numéro existe déjà = une modification de profil
-            const publie = t => data.find(v => v.id !== t.id && v.whatsapp === t.whatsapp && v.status === 'valide');
+            // (même numéro WhatsApp, ou même adresse e-mail si le tuteur a changé de numéro dans « Mon profil »)
+            const memeTuteur = (a, b) => a.whatsapp === b.whatsapp || (!!a.email && (a.email || '').toLowerCase() === (b.email || '').toLowerCase());
+            const publie = t => data.find(v => v.id !== t.id && memeTuteur(v, t) && v.status === 'valide');
             const dejaPublie = t => !!publie(t);
             // Modification de profil : l'e-mail de confirmation doit venir de l'adresse déjà enregistrée
             const avertissement = t => {
@@ -441,8 +443,8 @@
                     // 📌 Fondateur -> 📌 Cofondateur -> Retirer 📌
                     { cls: 'btn-n', action: 'fondateur',
                       label: !t.fondateur ? '📌 Fondateur' : t.fondateur === 'fondateur' ? '📌 Cofondateur' : 'Retirer 📌' },
-                    // Pause (profil visible, sans WhatsApp) : seulement pour les profils Fondateur / Cofondateur
-                    ...(t.fondateur ? [{ cls: 'btn-n', action: 'dispo', label: t.indisponible ? '▶️ Rendre disponible' : '⏸️ Indisponible' }] : []),
+                    // Pause (profil visible, sans WhatsApp) : le tuteur peut aussi la faire lui-même dans « Mon profil »
+                    { cls: 'btn-n', action: 'dispo', label: t.indisponible ? '▶️ Rendre disponible' : '⏸️ Indisponible' },
                     // ⭐ Mise en avant discrète (1re à 5e place dans « Recommandé ») : pas pour les fondateurs, déjà placés
                     ...(t.fondateur ? [] : [{ cls: 'btn-n', action: 'avant', label: t.mis_en_avant ? '⭐ Retirer la mise en avant' : '⭐ Mettre en avant' }]),
                     { cls: 'btn-n', action: 'depublier', label: 'Dépublier' },
@@ -500,10 +502,11 @@
 
             // Modification de profil : la nouvelle fiche validée remplace les anciennes du même numéro
             if (action === 'valider') {
-                const tel = (fiches.find(t => String(t.id) === id) || {}).whatsapp;
+                const nouveauProfil = fiches.find(t => String(t.id) === id) || {};
+                const tel = nouveauProfil.whatsapp, mail = (nouveauProfil.email || '').toLowerCase();
                 if (tel) {
-                    // Le nouveau profil garde le badge et les clics de l'ancien
-                    const anciens = fiches.filter(t => t.whatsapp === tel && String(t.id) !== id && t.status === 'valide');
+                    // Le nouveau profil garde le badge et les clics de l'ancien (même numéro, ou même e-mail)
+                    const anciens = fiches.filter(t => (t.whatsapp === tel || (mail && (t.email || '').toLowerCase() === mail)) && String(t.id) !== id && t.status === 'valide');
                     if (anciens.length) await db.from('tuteurs').update({
                         badge_verifie: anciens.some(t => t.badge_verifie),
                         fondateur: (anciens.find(t => t.fondateur) || {}).fondateur || null,
@@ -512,7 +515,7 @@
                         compteur_clics: Math.max(...anciens.map(t => t.compteur_clics || 0))
                     }).eq('id', id);
                     if (anciens.length) await db.from('paiements').update({ tuteur_id: id }).in('tuteur_id', anciens.map(t => String(t.id)));
-                    const { error } = await db.from('tuteurs').delete().eq('whatsapp', tel).neq('id', id);
+                    const { error } = anciens.length ? await db.from('tuteurs').delete().in('id', anciens.map(t => t.id)) : {};
                     if (error) alert('Profil validé, mais l\'ancien profil n\'a pas pu être supprimé : supprime-le à la main.');
                 }
             }

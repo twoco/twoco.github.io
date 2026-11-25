@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Sécurité : le navigateur ne charge que les fichiers du site et ne se connecte qu'à Supabase -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://wjkhkxtdlrphouwsnicg.supabase.co wss://wjkhkxtdlrphouwsnicg.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Mon profil – Twoco</title>
+    <meta name="description" content="Tuteur Twoco : modifie ton profil, mets-le en pause ou supprime-le.">
+    <meta name="robots" content="noindex">
+    <link rel="canonical" href="https://twoco.ch/mon-profil.html">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="preconnect" href="https://wjkhkxtdlrphouwsnicg.supabase.co" crossorigin>
+    <link href="commun.css?v=dev" rel="stylesheet">
+    <style>
+        .card { max-width: 560px; margin: 40px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); line-height: 1.5; }
+        h1, h2 { margin: 0 0 6px; font-size: 1.6rem; }
+        .intro { margin: 0; color: #64748b; }
+        .intro a, .petit a { color: var(--blue); font-weight: 600; }
+        label { display: block; margin-top: 20px; font-weight: 600; }
+        input[type=email], input[type=text] { width: 100%; padding: 12px 14px; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font: inherit; }
+        input:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+        button { width: 100%; background: var(--blue); color: white; border: none; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 1rem; margin-top: 24px; cursor: pointer; font-family: inherit; }
+        button:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
+        .erreur { color: #b91c1c; font-weight: 600; margin: 12px 0 0; }
+        .erreur:empty { display: none; }
+        .petit { margin: 16px 0 0; color: #64748b; font-size: 0.9rem; text-align: center; }
+        .liens { text-align: center; margin: 16px 0 0; color: #94a3b8; font-size: 0.9rem; }
+        .lien { width: auto; margin: 0; padding: 0; background: none; color: var(--blue); font-weight: 600; font-size: inherit; text-decoration: underline; }
+        .lien:disabled { background: none; color: #94a3b8; text-decoration: none; }
+
+        /* Espace du tuteur */
+        .profil { margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; }
+        .profil h2 { font-size: 1.2rem; margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .profil p { margin: 4px 0; font-size: 0.95rem; }
+        .statut { display: inline-block; font-size: 0.8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+        .statut.en-ligne { background: #dcfce7; color: #166534; }
+        .statut.pause { background: #e2e8f0; color: #334155; }
+        .statut.attente { background: #fef9c3; color: #854d0e; }
+        .statut.verifie { background: #ede9fe; color: #5b21b6; }
+        .note { background: #eff6ff; color: #1e3a8a; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; margin: 14px 0 0; }
+        .actions { display: grid; gap: 10px; margin-top: 20px; }
+        .actions button { margin: 0; padding: 14px; }
+        .actions .secondaire { background: #f1f5f9; color: var(--dark); }
+        .actions .danger { background: #fee2e2; color: #991b1b; }
+        .fin { text-align: center; }
+        @media (max-width: 600px) { .card { margin: 0; padding: 28px 20px; border-radius: 0; box-shadow: none; } }
+    </style>
+</head>
+<body>
+    <header class="navbar"><a href="index.html" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a></header>
+
+    <main>
+    <div class="card">
+        <!-- Étape 1 : adresse e-mail -->
+        <form id="etape-email" novalidate>
+            <h1>Mon profil</h1>
+            <p class="intro">Tu es tuteur sur Twoco ? Modifie ton profil, mets-le en pause ou supprime-le. Entre l'adresse <strong>@unil.ch</strong> utilisée à ton inscription : tu recevras un code par e-mail.</p>
+            <label for="email">E-mail universitaire</label>
+            <input type="email" id="email" autocomplete="email" maxlength="120" placeholder="prenom.nom@unil.ch" required>
+            <p id="erreur-email" class="erreur" role="alert"></p>
+            <button type="submit" id="envoyer-code">Recevoir un code</button>
+            <p class="petit">Pas encore tuteur ? <a href="inscription.html">Devenir tuteur</a></p>
+        </form>
+
+        <!-- Étape 2 : code reçu par e-mail -->
+        <form id="etape-code" novalidate hidden>
+            <h1>Entre ton code</h1>
+            <p class="intro">On vient d'envoyer un code à 6 chiffres à <strong id="code-email"></strong>. Il peut mettre jusqu'à <strong>1&nbsp;minute</strong> à arriver. Regarde aussi dans les spams.</p>
+            <label for="code">Code reçu par e-mail</label>
+            <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456" required>
+            <p id="erreur-code" class="erreur" role="alert"></p>
+            <button type="submit" id="confirmer">Me connecter</button>
+            <p class="liens">
+                <button type="button" class="lien" id="renvoyer">Renvoyer le code</button> ·
+                <button type="button" class="lien" id="changer-email">Modifier mon adresse</button>
+            </p>
+        </form>
+
+        <!-- Étape 3 : espace du tuteur -->
+        <section id="espace" hidden aria-live="polite"></section>
+    </div>
+    </main>
+
+    <footer>
+        <p><a href="legal.html#cgu">CGU</a> · <a href="legal.html#confidentialite">Confidentialité</a> · <a href="legal.html#mentions">Impressum</a></p>
+    </footer>
+
+    <script src="vendor/supabase.js?v=dev"></script>
+    <script src="config.js?v=dev"></script>
+    <script src="catalogue.js?v=dev"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        // Connexion du tuteur : gardée seulement en mémoire (rien dans le navigateur), elle s'arrête quand la page est fermée
+        const dbProfil = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY,
+            { auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false } });
+        let email = '', profils = [], FAC = {}, attenteRenvoi = null;
+        const emailValide = e => e.endsWith(CONFIG.EMAIL_DOMAINE) && /^[^\s@]+@[^\s@]+$/.test(e);
+        chargerCatalogue(db).then(c => { FAC = arbreCatalogue(c); if (profils.length) afficherEspace(); }).catch(console.error);
+
+        function messageAuth(error) {
+            const m = String((error && error.message) || '').toLowerCase();
+            if (m.includes('signups not allowed') || m.includes('not found') || m.includes('user not'))
+                return 'Aucun profil n\'est enregistré avec cette adresse. Vérifie l\'adresse utilisée à ton inscription.';
+            if (error && (error.status === 429 || m.includes('rate') || m.includes('seconds')))
+                return 'Trop de demandes. Attends une minute, puis réessaie.';
+            if (m.includes('expired') || m.includes('invalid') || m.includes('token'))
+                return 'Code incorrect ou expiré. Vérifie le code, ou demande-en un nouveau.';
+            return 'Le code n\'a pas pu être envoyé. Vérifie ton adresse et réessaie dans un instant.';
+        }
+
+        // ---------- 1. Envoi du code (seulement aux adresses déjà inscrites : aucun compte n'est créé ici)
+        async function envoyerCode() {
+            const { error } = await dbProfil.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+            if (error) { console.error(error); return messageAuth(error); }
+            let reste = 60;
+            $('renvoyer').disabled = true;
+            $('renvoyer').textContent = `Renvoyer le code (${reste} s)`;
+            clearInterval(attenteRenvoi);
+            attenteRenvoi = setInterval(() => {
+                reste -= 1;
+                $('renvoyer').textContent = reste > 0 ? `Renvoyer le code (${reste} s)` : 'Renvoyer le code';
+                if (reste <= 0) { clearInterval(attenteRenvoi); $('renvoyer').disabled = false; }
+            }, 1000);
+            return '';
+        }
+        let envoiEnCours = false;
+        $('etape-email').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            if (envoiEnCours) return;
+            $('erreur-email').textContent = '';
+            email = $('email').value.trim().toLowerCase();
+            if (!emailValide(email)) { $('erreur-email').textContent = `Indique ton adresse universitaire (qui se termine par ${CONFIG.EMAIL_DOMAINE}).`; return; }
+            envoiEnCours = true;
+            $('envoyer-code').disabled = true;
+            $('envoyer-code').textContent = 'Envoi du code...';
+            const erreur = await envoyerCode();
+            envoiEnCours = false;
+            $('envoyer-code').disabled = false;
+            $('envoyer-code').textContent = 'Recevoir un code';
+            if (erreur) { $('erreur-email').textContent = erreur; return; }
+            $('etape-email').hidden = true;
+            $('code-email').textContent = email;
+            $('code').value = '';
+            $('etape-code').hidden = false;
+            $('code').focus();
+        });
+        $('renvoyer').addEventListener('click', async () => { $('erreur-code').textContent = await envoyerCode(); });
+        $('changer-email').addEventListener('click', () => { $('etape-code').hidden = true; $('etape-email').hidden = false; $('email').focus(); });
+
+        // ---------- 2. Vérification du code
+        $('etape-code').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const code = $('code').value.replace(/\D/g, '');
+            $('erreur-code').textContent = '';
+            if (code.length < 6) { $('erreur-code').textContent = 'Entre le code à 6 chiffres reçu par e-mail.'; return; }
+            const btn = $('confirmer');
+            btn.disabled = true;
+            btn.textContent = 'Vérification...';
+            const { error } = await dbProfil.auth.verifyOtp({ email, token: code, type: 'email' });
+            btn.disabled = false;
+            btn.textContent = 'Me connecter';
+            if (error) { console.error(error); $('erreur-code').textContent = messageAuth(error); return; }
+            clearInterval(attenteRenvoi);
+            $('etape-code').hidden = true;
+            await chargerProfils();
+        });
+
+        // ---------- 3. Espace du tuteur (Supabase ne renvoie que ses propres profils)
+        async function chargerProfils() {
+            const { data, error } = await dbProfil.from('tuteurs')
+                .select('id, prenom, nom, faculte, annee, matieres, lieu, langues, whatsapp, email, prix, status, indisponible, badge_verifie, created_at')
+                .order('created_at', { ascending: false });
+            if (error) { console.error(error); afficherMessage('Impossible de charger ton profil pour le moment. Réessaie dans quelques minutes.'); return; }
+            profils = data || [];
+            afficherEspace();
+        }
+        function afficherMessage(html, deconnecter = true) {
+            $('espace').innerHTML = `<div class="fin">${html}</div>` + (deconnecter ? '<p class="petit"><a href="index.html">Retour à l\'accueil</a></p>' : '');
+            $('espace').hidden = false;
+        }
+        const faculteDe = t => (FAC[t.faculte] || {}).nom || t.faculte;
+        const anneeDe = t => (((FAC[t.faculte] || {}).annees || {})[t.annee] || {}).nom || `${t.annee}re année`;
+        const telLisible = n => String(n || '').startsWith('41') && n.length === 11 ? `+41 ${n.slice(2, 4)} ${n.slice(4, 7)} ${n.slice(7, 9)} ${n.slice(9)}` : '+' + n;
+
+        function afficherEspace() {
+            const publie = profils.find(t => t.status === 'valide');
+            const attente = profils.find(t => t.status !== 'valide');
+            const principal = publie || attente;
+            if (!principal) {
+                afficherMessage(`<h1>Aucun profil</h1><p class="intro">Il n'y a pas (ou plus) de profil de tuteur avec l'adresse ${esc(email)}.</p><p class="petit"><a href="inscription.html">Devenir tuteur</a></p>`);
+                return;
+            }
+            const statut = !publie ? '<span class="statut attente">En attente de validation</span>'
+                : publie.indisponible ? '<span class="statut pause">⏸️ En pause</span>' : '<span class="statut en-ligne">En ligne</span>';
+            $('espace').innerHTML = `
+                <h1>Bonjour ${esc(principal.prenom)} 👋</h1>
+                <p class="intro">Voici ton profil tel qu'il apparaît sur Twoco.</p>
+                <div class="profil">
+                    <h2>${esc(principal.prenom)} ${esc(principal.nom)} ${statut}${principal.badge_verifie ? ' <span class="statut verifie">★ Vérifié</span>' : ''}</h2>
+                    <p>🎓 ${esc(faculteDe(principal))} – ${esc(anneeDe(principal))}</p>
+                    <p>📚 ${esc(principal.matieres)}</p>
+                    <p>📍 ${esc(principal.lieu)}</p>
+                    ${principal.langues ? `<p>🗣️ ${esc(principal.langues)}</p>` : ''}
+                    <p>💬 ${esc(telLisible(principal.whatsapp))}</p>
+                </div>
+                ${publie && attente ? '<p class="note">📝 Une modification de ton profil est en attente de validation par l\'équipe Twoco.</p>' : ''}
+                ${publie && publie.indisponible ? '<p class="note">⏸️ Ton profil est en pause : il reste visible, mais les élèves ne peuvent pas te contacter.</p>' : ''}
+                ${!publie ? '<p class="note">Ton profil apparaîtra sur le site dès qu\'il aura été validé par l\'équipe Twoco.</p>' : ''}
+                <div class="actions">
+                    <button type="button" data-action="modifier">✏️ Modifier mon profil</button>
+                    ${publie ? `<button type="button" class="secondaire" data-action="pause">${publie.indisponible ? '▶️ Redevenir disponible' : '⏸️ Mettre mon profil en pause'}</button>` : ''}
+                    <button type="button" class="danger" data-action="supprimer">🗑️ Supprimer mon profil</button>
+                    <button type="button" class="secondaire" data-action="deconnexion">Me déconnecter</button>
+                </div>
+                <p id="erreur-espace" class="erreur" role="alert"></p>
+                <p class="petit">Une question ? Écris-nous à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a></p>`;
+            $('espace').hidden = false;
+        }
+
+        $('espace').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const publie = profils.find(t => t.status === 'valide');
+            const principal = publie || profils[0];
+            $('erreur-espace') && ($('erreur-espace').textContent = '');
+
+            if (action === 'deconnexion') {
+                await dbProfil.auth.signOut();
+                location.href = 'index.html';
+                return;
+            }
+            if (action === 'pause') {
+                btn.disabled = true;
+                const { data, error } = await dbProfil.from('tuteurs').update({ indisponible: !publie.indisponible }).eq('id', publie.id).select('indisponible');
+                if (error || !data || !data.length) { console.error(error); $('erreur-espace').textContent = 'Le changement n\'a pas pu être enregistré. Réessaie dans un instant.'; btn.disabled = false; return; }
+                publie.indisponible = data[0].indisponible;
+                afficherEspace();
+                return;
+            }
+            if (action === 'supprimer') {
+                if (!confirm('Supprimer définitivement ton profil Twoco ?\n\nIl disparaîtra tout de suite du site. Tu pourras te réinscrire plus tard si tu veux.')) return;
+                btn.disabled = true;
+                const { data, error } = await dbProfil.from('tuteurs').delete().in('id', profils.map(t => t.id)).select('id');
+                if (error || !data || !data.length) { console.error(error); $('erreur-espace').textContent = 'La suppression n\'a pas pu être faite. Réessaie, ou écris-nous à contact.twoco@gmail.com.'; btn.disabled = false; return; }
+                await dbProfil.auth.signOut();
+                profils = [];
+                afficherMessage('<h1>Profil supprimé</h1><p class="intro">Ton profil a été supprimé de Twoco. Merci d\'avoir aidé des étudiants 🙏</p>');
+                return;
+            }
+            if (action === 'modifier') {
+                // Le formulaire « Devenir tuteur » s'ouvre déjà rempli. La connexion est passée à cet onglet seulement
+                // (sessionStorage, 30 minutes au plus, effacée à l'envoi) : pas besoin d'un nouveau code.
+                const { data } = await dbProfil.auth.getSession();
+                const s = data && data.session;
+                try {
+                    sessionStorage.setItem('twoco-modification', JSON.stringify({
+                        profil: { prenom: principal.prenom, nom: principal.nom, email: principal.email, whatsapp: principal.whatsapp, faculte: principal.faculte,
+                            annee: principal.annee, matieres: principal.matieres, lieu: principal.lieu, langues: principal.langues },
+                        session: s ? { access_token: s.access_token, refresh_token: s.refresh_token } : null,
+                        depuis: Date.now()
+                    }));
+                } catch (err) {}
+                location.href = 'inscription.html?modification=1';
+            }
+        });
+    </script>
+</body>
+</html>

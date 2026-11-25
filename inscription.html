@@ -81,6 +81,7 @@
         .contact-aide { background: #eff6ff; color: #1e3a8a; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; margin: 10px 0 0; text-align: left; }
         .contact-aide a { color: inherit; font-weight: 700; }
         .contact-aide p { margin: 0; }
+        .note-modif { background: #ede9fe; color: #4c1d95; }
         .contact-aide p + p { margin-top: 8px; }
         .twint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 8px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-size: 0.9rem; text-align: left; }
         .twint > span { flex: 1 1 260px; }
@@ -117,10 +118,11 @@
 
     <div class="card">
         <form id="formulaire" novalidate>
-            <h1>Devenir tuteur</h1>
-            <p class="intro">Environ 2 minutes. À la fin, tu confirmes ton adresse e-mail avec un code reçu par e-mail. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
-            <div class="contact-aide">
-                <p>✏️ <strong>Déjà inscrit et tu veux modifier ton profil ?</strong> Pas besoin de nous écrire : remplis simplement ce formulaire à nouveau avec le <strong>même numéro WhatsApp</strong> et la <strong>même adresse e-mail</strong>. Ton nouveau profil remplacera l'ancien après validation, et ton badge « Vérifié » est conservé.</p>
+            <h1 id="titre-form">Devenir tuteur</h1>
+            <p class="intro" id="intro-form">Environ 2 minutes. À la fin, tu confirmes ton adresse e-mail avec un code reçu par e-mail. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
+            <p class="contact-aide note-modif" id="note-modif" hidden></p>
+            <div class="contact-aide" id="aide-deja-inscrit">
+                <p>✏️ <strong>Déjà inscrit ?</strong> Pour modifier ton profil, le mettre en pause ou le supprimer, va sur <a href="mon-profil.html">Mon profil</a> (connexion avec un code envoyé à ton adresse @unil.ch). Ton badge « Vérifié » est conservé.</p>
                 <p>✉️ Une autre question ? Écris-nous à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a></p>
             </div>
 
@@ -223,8 +225,8 @@
         </form>
 
         <div id="succes">
-            <h2>Candidature envoyée</h2>
-            <p>Merci ! Ton profil apparaîtra sur le site dès qu'il aura été validé.</p>
+            <h2 id="succes-titre">Candidature envoyée</h2>
+            <p id="succes-texte">Merci ! Ton profil apparaîtra sur le site dès qu'il aura été validé.</p>
             <div class="twint">
                 <span><strong>Après ton premier cours</strong> via Twoco : <strong>5 CHF par TWINT</strong> au <strong class="twint-numero"></strong> (<span class="twint-nom"></span>), avec ton prénom et ton nom en message.</span>
                 <button type="button" class="copier" data-copie="twint">Copier le numéro</button>
@@ -326,6 +328,7 @@
             afficherAnnees();
             majBouton(); // la faculté peut être cochée d'office : on met à jour « Il manque »
             reprendreCandidature();
+            reprendreModification();
         })();
 
         // Image de la bande choisie dans l'admin (sinon l'illustration de base)
@@ -470,8 +473,26 @@
                 cgu_version: CONFIG.CGU_VERSION,
                 status: 'en_attente'
             };
+            if (modification) {
+                let erreurConnexion = null;
+                try { ({ error: erreurConnexion } = await dbCode.auth.setSession(modification.session)); }
+                catch (e) { erreurConnexion = e; }
+                if (!erreurConnexion) {
+                    btn.textContent = 'Envoi...';
+                    const envoye = await envoyerCandidature(montrerErreur);
+                    btn.textContent = 'Envoyer ma modification';
+                    envoiEnCours = false;
+                    majBouton();
+                    return envoye;
+                }
+                // Connexion expirée : on repasse par un code, comme une inscription normale
+                console.error(erreurConnexion);
+                modification = null;
+                oublierModification();
+                $('email').readOnly = false;
+            }
             const ok = await envoyerCode();
-            btn.textContent = 'Envoyer ma candidature';
+            btn.textContent = modification ? 'Envoyer ma modification' : 'Envoyer ma candidature';
             envoiEnCours = false;
             majBouton();
             if (!ok) return;
@@ -505,28 +526,53 @@
             if (!sauvegarde || !sauvegarde.candidature || Date.now() - sauvegarde.depuis > 30 * 60 * 1000) { oublier(); return; }
             candidature = sauvegarde.candidature;
             // Le formulaire est rempli à nouveau, au cas où la personne veut modifier quelque chose
-            $('prenom').value = candidature.prenom;
-            $('nom').value = candidature.nom;
-            $('email').value = candidature.email;
-            $('whatsapp').value = '+' + candidature.whatsapp;
-            const pays = ['41', '33'].find(p => candidature.whatsapp.startsWith(p)) || 'autre';
-            const radioPays = document.querySelector(`input[name="pays"][value="${pays}"]`);
-            if (radioPays) radioPays.checked = true;
-            majApercuTel();
-            $('langues').value = candidature.langues || '';
-            const cocher = (nom, v) => { const i = document.querySelector(`input[name="${nom}"][value="${CSS.escape(v)}"]`); if (i) i.checked = true; };
-            cocher('faculte', candidature.faculte);
-            afficherAnnees();
-            cocher('annee', candidature.annee);
-            afficherMatieres();
-            candidature.matieres.split(', ').forEach(m => cocher('matiere', m));
-            candidature.lieu.split(', ').forEach(l => cocher('lieu', l));
-            $('accord').checked = true;
-            $('contribution').checked = true;
-            majBouton();
+            remplirFormulaire(candidature);
             $('formulaire').hidden = true;
             $('code-email').textContent = candidature.email;
             $('etape-code').hidden = false;
+        }
+
+        function remplirFormulaire(c) {
+            $('prenom').value = c.prenom;
+            $('nom').value = c.nom;
+            $('email').value = c.email;
+            $('whatsapp').value = '+' + c.whatsapp;
+            const pays = ['41', '33'].find(p => String(c.whatsapp).startsWith(p)) || 'autre';
+            const radioPays = document.querySelector(`input[name="pays"][value="${pays}"]`);
+            if (radioPays) radioPays.checked = true;
+            majApercuTel();
+            $('langues').value = c.langues || '';
+            const cocher = (nom, v) => { const i = document.querySelector(`input[name="${nom}"][value="${CSS.escape(v)}"]`); if (i) i.checked = true; };
+            cocher('faculte', c.faculte);
+            afficherAnnees();
+            cocher('annee', c.annee);
+            afficherMatieres();
+            String(c.matieres || '').split(', ').forEach(m => cocher('matiere', m));
+            String(c.lieu || '').split(', ').forEach(l => cocher('lieu', l));
+            $('accord').checked = true;
+            $('contribution').checked = true;
+            majBouton();
+        }
+
+        // ---------- Modification depuis « Mon profil » : formulaire déjà rempli, pas de nouveau code.
+        // La connexion vient de « Mon profil » (cet onglet seulement, 30 minutes au plus, effacée à l'envoi).
+        const CLE_MODIF = 'twoco-modification';
+        let modification = null;
+        function oublierModification() { try { sessionStorage.removeItem(CLE_MODIF); } catch (e) {} }
+        function reprendreModification() {
+            if (!$('etape-code').hidden) return;
+            let m = null;
+            try { m = JSON.parse(sessionStorage.getItem(CLE_MODIF) || 'null'); } catch (e) {}
+            if (!m || !m.profil || !m.session || Date.now() - m.depuis > 30 * 60 * 1000) { oublierModification(); return; }
+            modification = m;
+            remplirFormulaire(m.profil);
+            $('email').readOnly = true;
+            $('titre-form').textContent = 'Modifier mon profil';
+            $('intro-form').hidden = true;
+            $('note-modif').innerHTML = `✏️ <strong>Modification de ton profil</strong> (connecté avec ${esc(m.profil.email)}). Change ce que tu veux puis envoie : pas besoin de nouveau code. Ton profil sera mis à jour après validation par l'équipe Twoco.`;
+            $('note-modif').hidden = false;
+            $('aide-deja-inscrit').hidden = true;
+            $('envoyer').textContent = 'Envoyer ma modification';
         }
 
         function messageAuth(error) {
@@ -584,23 +630,34 @@
             const verif = await dbCode.auth.verifyOtp({ email: candidature.email, token: code, type: 'email' });
             if (verif.error) { console.error(verif.error); $('erreur-code').textContent = messageAuth(verif.error); fin(); return; }
 
-            // Adresse confirmée : la candidature part, liée à cette adresse (contrôlé aussi par Supabase)
+            if (!await envoyerCandidature(msg => { $('erreur-code').textContent = msg; })) fin();
+        });
+
+        // Adresse confirmée (code ou connexion « Mon profil ») : la candidature part, liée à cette adresse
+        // (contrôlé aussi par Supabase)
+        async function envoyerCandidature(afficherErreur) {
             const { error } = await dbCode.from('tuteurs').insert([candidature]);
             await dbCode.auth.signOut();
             if (error) {
                 console.error(error);
                 // Messages des protections anti-spam de Supabase (commencent par « TWOCO: »)
                 const msg = String(error.message || '');
-                $('erreur-code').textContent = msg.startsWith('TWOCO: ') ? msg.slice(7) : 'L\'envoi a échoué. Réessaie dans un instant.';
-                fin();
-                return;
+                afficherErreur(msg.startsWith('TWOCO: ') ? msg.slice(7) : 'L\'envoi a échoué. Réessaie dans un instant.');
+                return false;
             }
             clearInterval(attenteRenvoi);
             oublier();
+            if (modification) {
+                oublierModification();
+                $('succes-titre').textContent = 'Modification envoyée';
+                $('succes-texte').textContent = 'Merci ! Ton profil sera mis à jour dès que la modification aura été validée.';
+            }
+            $('formulaire').hidden = true;
             $('etape-code').hidden = true;
             $('succes').style.display = 'block';
             enregistrer(db, 'candidature', { faculte: candidature.faculte });
-        });
+            return true;
+        }
     </script>
 </body>
 </html>
