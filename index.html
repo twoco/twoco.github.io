@@ -29,6 +29,10 @@
     <style>
         .navbar { display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .btn-inscription { background: var(--blue); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; }
+        .nav-liens { display: flex; align-items: center; gap: 14px; }
+        .lien-profil { color: #cbd5e1; text-decoration: none; font-weight: 600; font-size: 0.95rem; white-space: nowrap; }
+        .lien-profil:hover { color: white; }
+        @media (max-width: 420px) { .nav-liens { gap: 10px; } .lien-profil { font-size: 0.85rem; } .btn-inscription { padding: 8px 12px; font-size: 0.9rem; } }
         /* Bande avec l'illustration de l'Amphimax (dégradé à gauche pour lire le texte) */
         .hero { display: flex; flex-direction: column; justify-content: flex-start; min-height: 380px; padding: 56px max(24px, calc((100% - 1100px) / 2 + 20px)); box-sizing: border-box; color: white; margin-bottom: 40px;
             background-color: #3b4f8f; background-position: center 50%; background-size: cover;
@@ -114,7 +118,10 @@
 <body>
     <header class="navbar">
         <a href="#" class="brand-title"><img src="logo.svg" alt=""><span>two<span class="co">co</span></span></a>
-        <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
+        <nav class="nav-liens" aria-label="Tuteurs">
+            <a href="mon-profil.html" class="lien-profil">Mon profil</a>
+            <a href="inscription.html" id="btn-ins" class="btn-inscription">Devenir tuteur</a>
+        </nav>
     </header>
     <section class="hero" id="hero" aria-labelledby="hero-titre">
         <h1 id="hero-titre"> Cours d'appui entre étudiants</h1>
