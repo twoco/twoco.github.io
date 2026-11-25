@@ -122,7 +122,7 @@
             <p class="intro" id="intro-form">Environ 2 minutes. À la fin, tu confirmes ton adresse e-mail avec un code reçu par e-mail. Ton profil apparaît sur le site après validation par l'équipe Twoco.</p>
             <p class="contact-aide note-modif" id="note-modif" hidden></p>
             <div class="contact-aide" id="aide-deja-inscrit">
-                <p>✏️ <strong>Déjà inscrit ?</strong> Pour modifier ton profil, le mettre en pause ou le supprimer, va sur <a href="mon-profil.html">Mon profil</a> (connexion avec un code envoyé à ton adresse @unil.ch). Ton badge « Vérifié » est conservé.</p>
+                <p>✏️ <strong>Déjà inscrit ?</strong> Pour modifier ton profil, le mettre en pause ou le supprimer, clique sur <a href="mon-profil.html">Me connecter</a> (code envoyé à ton adresse @unil.ch). Ton badge « Vérifié » est conservé.</p>
                 <p>✉️ Une autre question ? Écris-nous à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a></p>
             </div>
 
@@ -474,19 +474,17 @@
                 status: 'en_attente'
             };
             if (modification) {
-                let erreurConnexion = null;
-                try { ({ error: erreurConnexion } = await dbCode.auth.setSession(modification.session)); }
-                catch (e) { erreurConnexion = e; }
-                if (!erreurConnexion) {
+                const session = await connexionTuteur();
+                if (session) {
                     btn.textContent = 'Envoi...';
-                    const envoye = await envoyerCandidature(montrerErreur);
+                    // La connexion est gardée : le tuteur peut revenir sur « Me connecter » sans nouveau code
+                    const envoye = await envoyerCandidature(montrerErreur, dbConnexion, false);
                     btn.textContent = 'Envoyer ma modification';
                     envoiEnCours = false;
                     majBouton();
                     return envoye;
                 }
-                // Connexion expirée : on repasse par un code, comme une inscription normale
-                console.error(erreurConnexion);
+                // Connexion expirée ou fermée : on repasse par un code, comme une inscription normale
                 modification = null;
                 oublierModification();
                 $('email').readOnly = false;
@@ -554,16 +552,23 @@
             majBouton();
         }
 
-        // ---------- Modification depuis « Mon profil » : formulaire déjà rempli, pas de nouveau code.
-        // La connexion vient de « Mon profil » (cet onglet seulement, 30 minutes au plus, effacée à l'envoi).
+        // ---------- Modification depuis « Me connecter » : formulaire déjà rempli, pas de nouveau code.
+        // La connexion du tuteur est celle de cet onglet (sessionStorage), partagée avec la page « Me connecter ».
         const CLE_MODIF = 'twoco-modification';
+        const dbConnexion = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY,
+            { auth: { persistSession: true, storage: window.sessionStorage, storageKey: 'twoco-connexion-tuteur', autoRefreshToken: false, detectSessionInUrl: false } });
         let modification = null;
         function oublierModification() { try { sessionStorage.removeItem(CLE_MODIF); } catch (e) {} }
-        function reprendreModification() {
+        async function connexionTuteur() {
+            try { return (await dbConnexion.auth.getSession()).data.session; } catch (e) { console.error(e); return null; }
+        }
+        async function reprendreModification() {
             if (!$('etape-code').hidden) return;
             let m = null;
             try { m = JSON.parse(sessionStorage.getItem(CLE_MODIF) || 'null'); } catch (e) {}
-            if (!m || !m.profil || !m.session || Date.now() - m.depuis > 30 * 60 * 1000) { oublierModification(); return; }
+            const session = m && m.profil ? await connexionTuteur() : null;
+            if (!m || !m.profil || !session || (session.user.email || '').toLowerCase() !== String(m.profil.email).toLowerCase()
+                || Date.now() - m.depuis > 60 * 60 * 1000) { oublierModification(); return; }
             modification = m;
             remplirFormulaire(m.profil);
             $('email').readOnly = true;
@@ -635,9 +640,9 @@
 
         // Adresse confirmée (code ou connexion « Mon profil ») : la candidature part, liée à cette adresse
         // (contrôlé aussi par Supabase)
-        async function envoyerCandidature(afficherErreur) {
-            const { error } = await dbCode.from('tuteurs').insert([candidature]);
-            await dbCode.auth.signOut();
+        async function envoyerCandidature(afficherErreur, client = dbCode, deconnecter = true) {
+            const { error } = await client.from('tuteurs').insert([candidature]);
+            if (deconnecter) await client.auth.signOut();
             if (error) {
                 console.error(error);
                 // Messages des protections anti-spam de Supabase (commencent par « TWOCO: »)
@@ -651,6 +656,8 @@
                 oublierModification();
                 $('succes-titre').textContent = 'Modification envoyée';
                 $('succes-texte').textContent = 'Merci ! Ton profil sera mis à jour dès que la modification aura été validée.';
+                const retour = $('succes').querySelector('a.retour');
+                if (retour) { retour.href = 'mon-profil.html'; retour.textContent = 'Retour à mon profil'; }
             }
             $('formulaire').hidden = true;
             $('etape-code').hidden = true;
