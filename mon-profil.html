@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Sécurité : le navigateur ne charge que les fichiers du site et ne se connecte qu'à Supabase -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://wjkhkxtdlrphouwsnicg.supabase.co wss://wjkhkxtdlrphouwsnicg.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
-    <title>Mon profil – Twoco</title>
+    <title>Me connecter – Twoco</title>
     <meta name="description" content="Tuteur Twoco : modifie ton profil, mets-le en pause ou supprime-le.">
     <meta name="robots" content="noindex">
     <link rel="canonical" href="https://twoco.ch/mon-profil.html">
@@ -46,6 +46,11 @@
         .actions .secondaire { background: #f1f5f9; color: var(--dark); }
         .actions .danger { background: #fee2e2; color: #991b1b; }
         .fin { text-align: center; }
+        .confirmer { margin-top: 20px; border: 2px solid #93c5fd; background: #eff6ff; border-radius: 12px; padding: 16px; }
+        .confirmer p { margin: 0; font-size: 0.95rem; }
+        .confirmer .actions { margin-top: 14px; }
+        .confirmer.danger-zone { border-color: #fca5a5; background: #fef2f2; }
+        .actions .danger-plein { background: #dc2626; color: white; }
         @media (max-width: 600px) { .card { margin: 0; padding: 28px 20px; border-radius: 0; box-shadow: none; } }
     </style>
 </head>
@@ -55,9 +60,10 @@
     <main>
     <div class="card">
         <!-- Étape 1 : adresse e-mail -->
-        <form id="etape-email" novalidate>
-            <h1>Mon profil</h1>
-            <p class="intro">Tu es tuteur sur Twoco ? Modifie ton profil, mets-le en pause ou supprime-le. Entre l'adresse <strong>@unil.ch</strong> utilisée à ton inscription : tu recevras un code par e-mail.</p>
+        <p id="chargement" class="intro">Chargement…</p>
+        <form id="etape-email" novalidate hidden>
+            <h1>Me connecter</h1>
+            <p class="intro">Tu es tuteur sur Twoco ? Connecte-toi pour modifier ton profil, le mettre en pause ou le supprimer. Entre l'adresse <strong>@unil.ch</strong> utilisée à ton inscription : tu recevras un code par e-mail.</p>
             <label for="email">E-mail universitaire</label>
             <input type="email" id="email" autocomplete="email" maxlength="120" placeholder="prenom.nom@unil.ch" required>
             <p id="erreur-email" class="erreur" role="alert"></p>
@@ -95,9 +101,23 @@
         const $ = id => document.getElementById(id);
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        // Connexion du tuteur : gardée seulement en mémoire (rien dans le navigateur), elle s'arrête quand la page est fermée
+        // Connexion du tuteur : gardée seulement dans cet onglet (sessionStorage), pour pouvoir revenir en arrière
+        // depuis « Modifier » sans nouveau code. Elle s'efface à la déconnexion ou quand l'onglet est fermé.
         const dbProfil = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY,
-            { auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false } });
+            { auth: { persistSession: true, storage: window.sessionStorage, storageKey: 'twoco-connexion-tuteur', autoRefreshToken: true, detectSessionInUrl: false } });
+        const CLE_MODIF = 'twoco-modification';
+        let confirmation = '';   // '' | 'pause' | 'supprimer' : demande de confirmation affichée
+        (async () => {
+            let session = null;
+            try { session = (await dbProfil.auth.getSession()).data.session; } catch (e) { console.error(e); }
+            $('chargement').hidden = true;
+            if (session && session.user && session.user.email) { email = session.user.email.toLowerCase(); await chargerProfils(); }
+            else $('etape-email').hidden = false;
+        })();
+        async function deconnecter() {
+            try { await dbProfil.auth.signOut({ scope: 'local' }); } catch (e) { console.error(e); }
+            try { sessionStorage.removeItem(CLE_MODIF); } catch (e) {}
+        }
         let email = '', profils = [], FAC = {}, attenteRenvoi = null;
         const emailValide = e => e.endsWith(CONFIG.EMAIL_DOMAINE) && /^[^\s@]+@[^\s@]+$/.test(e);
         chargerCatalogue(db).then(c => { FAC = arbreCatalogue(c); if (profils.length) afficherEspace(); }).catch(console.error);
@@ -211,12 +231,27 @@
                 ${publie && attente ? '<p class="note">📝 Une modification de ton profil est en attente de validation par l\'équipe Twoco.</p>' : ''}
                 ${publie && publie.indisponible ? '<p class="note">⏸️ Ton profil est en pause : il reste visible, mais les élèves ne peuvent pas te contacter.</p>' : ''}
                 ${!publie ? '<p class="note">Ton profil apparaîtra sur le site dès qu\'il aura été validé par l\'équipe Twoco.</p>' : ''}
+                ${confirmation === 'pause' ? `
+                <div class="confirmer">
+                    <p><strong>⏸️ Mettre ton profil en pause ?</strong><br>Il restera visible sur le site, mais les élèves ne pourront plus te contacter sur WhatsApp. Tu pourras le réactiver quand tu veux.</p>
+                    <div class="actions">
+                        <button type="button" data-action="pause-oui">Oui, mettre en pause</button>
+                        <button type="button" class="secondaire" data-action="annuler">Annuler</button>
+                    </div>
+                </div>` : confirmation === 'supprimer' ? `
+                <div class="confirmer danger-zone">
+                    <p><strong>🗑️ Supprimer définitivement ton profil ?</strong><br>Il disparaîtra tout de suite du site et ne pourra pas être récupéré. Tu pourras te réinscrire plus tard si tu veux.</p>
+                    <div class="actions">
+                        <button type="button" class="danger-plein" data-action="supprimer-oui">Oui, supprimer définitivement</button>
+                        <button type="button" class="secondaire" data-action="annuler">Annuler</button>
+                    </div>
+                </div>` : `
                 <div class="actions">
                     <button type="button" data-action="modifier">✏️ Modifier mon profil</button>
-                    ${publie ? `<button type="button" class="secondaire" data-action="pause">${publie.indisponible ? '▶️ Redevenir disponible' : '⏸️ Mettre mon profil en pause'}</button>` : ''}
+                    ${publie ? `<button type="button" class="secondaire" data-action="${publie.indisponible ? 'pause-oui' : 'pause'}">${publie.indisponible ? '▶️ Redevenir disponible' : '⏸️ Mettre mon profil en pause'}</button>` : ''}
                     <button type="button" class="danger" data-action="supprimer">🗑️ Supprimer mon profil</button>
                     <button type="button" class="secondaire" data-action="deconnexion">Me déconnecter</button>
-                </div>
+                </div>`}
                 <p id="erreur-espace" class="erreur" role="alert"></p>
                 <p class="petit">Une question ? Écris-nous à <a href="mailto:contact.twoco@gmail.com">contact.twoco@gmail.com</a></p>`;
             $('espace').hidden = false;
@@ -231,38 +266,39 @@
             $('erreur-espace') && ($('erreur-espace').textContent = '');
 
             if (action === 'deconnexion') {
-                await dbProfil.auth.signOut();
+                await deconnecter();
                 location.href = 'index.html';
                 return;
             }
-            if (action === 'pause') {
+            // Pause et suppression : on demande d'abord une confirmation (évite les clics par erreur)
+            if (action === 'pause' || action === 'supprimer') { confirmation = action; afficherEspace(); return; }
+            if (action === 'annuler') { confirmation = ''; afficherEspace(); return; }
+            if (action === 'pause-oui') {
                 btn.disabled = true;
                 const { data, error } = await dbProfil.from('tuteurs').update({ indisponible: !publie.indisponible }).eq('id', publie.id).select('indisponible');
                 if (error || !data || !data.length) { console.error(error); $('erreur-espace').textContent = 'Le changement n\'a pas pu être enregistré. Réessaie dans un instant.'; btn.disabled = false; return; }
                 publie.indisponible = data[0].indisponible;
+                confirmation = '';
                 afficherEspace();
                 return;
             }
-            if (action === 'supprimer') {
-                if (!confirm('Supprimer définitivement ton profil Twoco ?\n\nIl disparaîtra tout de suite du site. Tu pourras te réinscrire plus tard si tu veux.')) return;
+            if (action === 'supprimer-oui') {
                 btn.disabled = true;
                 const { data, error } = await dbProfil.from('tuteurs').delete().in('id', profils.map(t => t.id)).select('id');
                 if (error || !data || !data.length) { console.error(error); $('erreur-espace').textContent = 'La suppression n\'a pas pu être faite. Réessaie, ou écris-nous à contact.twoco@gmail.com.'; btn.disabled = false; return; }
-                await dbProfil.auth.signOut();
+                await deconnecter();
                 profils = [];
+                confirmation = '';
                 afficherMessage('<h1>Profil supprimé</h1><p class="intro">Ton profil a été supprimé de Twoco. Merci d\'avoir aidé des étudiants 🙏</p>');
                 return;
             }
             if (action === 'modifier') {
-                // Le formulaire « Devenir tuteur » s'ouvre déjà rempli. La connexion est passée à cet onglet seulement
-                // (sessionStorage, 30 minutes au plus, effacée à l'envoi) : pas besoin d'un nouveau code.
-                const { data } = await dbProfil.auth.getSession();
-                const s = data && data.session;
+                // Le formulaire « Devenir tuteur » s'ouvre déjà rempli ; la connexion de cet onglet sert à l'envoyer
+                // (pas besoin d'un nouveau code). Le bouton « retour » ramène ici, toujours connecté.
                 try {
-                    sessionStorage.setItem('twoco-modification', JSON.stringify({
+                    sessionStorage.setItem(CLE_MODIF, JSON.stringify({
                         profil: { prenom: principal.prenom, nom: principal.nom, email: principal.email, whatsapp: principal.whatsapp, faculte: principal.faculte,
                             annee: principal.annee, matieres: principal.matieres, lieu: principal.lieu, langues: principal.langues },
-                        session: s ? { access_token: s.access_token, refresh_token: s.refresh_token } : null,
                         depuis: Date.now()
                     }));
                 } catch (err) {}
