@@ -102,6 +102,15 @@
         .outils-tuteurs select, .outils-tuteurs input { margin: 0; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; background: white; }
         .outils-tuteurs select { flex: 0 1 220px; }
         .outils-tuteurs input { flex: 1 1 260px; width: auto; }
+        /* Journal de l'activité des tuteurs */
+        .journal { margin-top: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 16px; }
+        .journal summary { cursor: pointer; font-weight: 700; }
+        .journal-outils { margin: 10px 0 6px; }
+        .journal-outils select { margin: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 0.9rem; background: white; }
+        .journal-ligne { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid #f1f5f9; font-size: 0.9rem; }
+        .journal-ligne .quand { flex: 0 0 120px; color: #64748b; font-size: 0.82rem; }
+        .journal-ligne .par { color: #64748b; font-size: 0.82rem; }
+        .journal-ligne.depart .quoi { color: #991b1b; }
         .copier-emails { display: flex; gap: 8px; align-items: center; }
         .copier-emails select { margin: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 0.9rem; background: white; }
         .compte { font-size: 0.9rem; font-weight: 600; color: #64748b; }
@@ -222,6 +231,18 @@
             </section>
             <div class="colonnes">
                 <div class="colonne panneau visible" id="col-tuteurs">
+                    <!-- Journal : ce que font les tuteurs (candidature, modification, pause, suppression…) -->
+                    <details class="journal" id="journal">
+                        <summary>🕓 Activité des tuteurs <span class="compte" id="journal-resume"></span></summary>
+                        <div class="journal-outils">
+                            <select id="journal-filtre" aria-label="Filtrer l'activité">
+                                <option value="">Tout</option>
+                                <option value="depart">Pauses, reprises et suppressions</option>
+                                <option value="arrivee">Candidatures, modifications et validations</option>
+                            </select>
+                        </div>
+                        <div id="journal-liste"></div>
+                    </details>
                     <div class="outils-tuteurs">
                         <select id="filtre-fac" aria-label="Filtrer par faculté"><option value="">Toutes les facultés</option></select>
                         <input type="search" id="recherche-tuteur" placeholder="Rechercher : nom, prénom, numéro, e-mail, matière…" aria-label="Rechercher un tuteur" autocomplete="off">
@@ -310,7 +331,7 @@
             document.body.classList.toggle('associe', !estAdmin());
             $('bandeau-role').hidden = estAdmin();
             $('login').hidden = true; $('panel').hidden = false;
-            chargerPaiements().then(charger); chargerCatalogueAdmin(); chargerStats();
+            chargerPaiements().then(charger); chargerCatalogueAdmin(); chargerStats(); chargerJournal();
         }
 
         $('login-form').addEventListener('submit', async (e) => {
@@ -530,7 +551,43 @@
                 }
             }
             charger();
+            chargerJournal();
         });
+
+        // ---------- Journal des tuteurs (table Supabase « journal_tuteurs », remplie automatiquement par Supabase)
+        const ACTIONS = {
+            candidature: ['📝', 'Nouvelle candidature', 'arrivee'], modification: ['✏️', 'Modification demandée', 'arrivee'],
+            validation: ['✅', 'Profil validé', 'arrivee'], pause: ['⏸️', 'Pause activée', 'depart'], reprise: ['▶️', 'Pause terminée', 'depart'],
+            depublication: ['↩️', 'Profil dépublié', 'depart'], suppression: ['🗑️', 'Profil supprimé', 'depart']
+        };
+        const PAR = { tuteur: 'par le tuteur', admin: 'par l\'admin', systeme: 'automatique' };
+        let journal = [];
+        async function chargerJournal() {
+            const { data, error } = await db.from('journal_tuteurs').select('*').order('created_at', { ascending: false }).limit(300);
+            if (error) {
+                console.error(error);
+                $('journal-resume').textContent = '(pas encore installé : lance le SQL de NOTES.md, « Journal des tuteurs »)';
+                $('journal-liste').innerHTML = '';
+                return;
+            }
+            journal = data || [];
+            afficherJournal();
+        }
+        function afficherJournal() {
+            const semaine = Date.now() - 7 * 86400000;
+            const recents = journal.filter(j => new Date(j.created_at).getTime() > semaine);
+            const departs = recents.filter(j => (ACTIONS[j.action] || [])[2] === 'depart' && j.par === 'tuteur').length;
+            $('journal-resume').textContent = `(${recents.length} cette semaine${departs ? `, dont ${departs} pause${departs > 1 ? 's' : ''} ou suppression${departs > 1 ? 's' : ''} par les tuteurs` : ''})`;
+            const filtre = $('journal-filtre').value;
+            const lignes = journal.filter(j => !filtre || (ACTIONS[j.action] || [])[2] === filtre);
+            $('journal-liste').innerHTML = lignes.length ? lignes.slice(0, 150).map(j => {
+                const [icone, libelle, genre] = ACTIONS[j.action] || ['•', j.action, ''];
+                const quand = new Date(j.created_at).toLocaleString('fr-CH', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return `<div class="journal-ligne ${genre}"><span class="quand">${esc(quand)}</span>
+                    <span><span class="quoi">${icone} ${esc(libelle)}</span> — <strong>${esc(j.prenom || '')} ${esc(j.nom || '')}</strong>${j.faculte ? ` (${esc(nomFaculte(j.faculte))})` : ''} <span class="par">${esc(PAR[j.par] || j.par)}</span></span></div>`;
+            }).join('') : '<p class="vide">Aucune activité pour le moment.</p>';
+        }
+        $('journal-filtre').addEventListener('change', afficherJournal);
 
         // ---------- Paiements TWINT (table Supabase "paiements"), pour les impôts
         const MONTANT_CONTRIBUTION = 5;
